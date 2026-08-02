@@ -31,7 +31,7 @@ export async function GET() {
     });
   } catch (err) {
     return NextResponse.json(
-      { queues: { research: [], studio: [], packager: [] }, reports: [], latestMeetingNotes: null, counts: {}, error: String(err) },
+      { queues: { studio: [], editor: [], packager: [] }, reports: [], latestMeetingNotes: null, counts: {}, error: String(err) },
       { status: 200 }
     );
   }
