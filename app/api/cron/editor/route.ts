@@ -7,7 +7,9 @@ import { CATEGORY_LABEL, type Idea } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export const maxDuration = 60;
+export const maxDuration = 120; // bumped from 60s to give the higher cap headroom
+
+const PER_RUN_CAP = 20; // raised from 6 — text-only calls are fast/cheap, no timeout risk like studio's image rendering has
 
 const SYSTEM_PROMPT = `You are Ally Al, who writes Etsy listing copy for a small digital-products
 shop and does a quick quality pass before things move on. Write titles the way real successful
@@ -34,11 +36,13 @@ export async function GET(req: NextRequest) {
   await ensureSchema();
   const anthropic = new Anthropic({ apiKey });
 
-  const { rows: ideas } = await sql<Idea>`SELECT * FROM ideas WHERE status = 'image-ready' LIMIT 6`;
+  const { rows: ideas } = await sql<Idea>`SELECT * FROM ideas WHERE status = 'image-ready' LIMIT ${PER_RUN_CAP}`;
 
   let written = 0;
-  try {
-    for (const idea of ideas) {
+  let failed = 0;
+
+  for (const idea of ideas) {
+    try {
       const message = await anthropic.messages.create({
         model: process.env.ANTHROPIC_IDEA_MODEL || "claude-haiku-4-5-20251001",
         max_tokens: 700,
@@ -51,16 +55,28 @@ export async function GET(req: NextRequest) {
         raw.replace(/```json|```/g, "").trim()
       );
 
+      // Upsert, not a plain insert — if a prior run wrote the copy but the
+      // status update after it never landed (a transient failure between the
+      // two statements), this idea would otherwise permanently jam every
+      // future run on a duplicate-key error. Re-running it now just
+      // overwrites the copy and lets the status update proceed normally.
       await sql`INSERT INTO listing_copy (idea_id, title, tags, description)
-                VALUES (${idea.id}, ${copy.title}, ${copy.tags}, ${copy.description})`;
+                VALUES (${idea.id}, ${copy.title}, ${copy.tags}, ${copy.description})
+                ON CONFLICT (idea_id) DO UPDATE SET
+                  title = EXCLUDED.title, tags = EXCLUDED.tags, description = EXCLUDED.description`;
       await sql`UPDATE ideas SET status = 'ready-to-package' WHERE id = ${idea.id}`;
       written++;
+    } catch (err) {
+      // One bad idea (a malformed model response, a transient DB hiccup)
+      // no longer takes the rest of the batch down with it.
+      console.error(`editor failed on idea ${idea.id}`, err);
+      failed++;
     }
-
-    await logReport("Ally Al", `${written} listings written`);
-    return NextResponse.json({ ok: true, written });
-  } catch (err) {
-    console.error("editor cron failed", err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
+
+  await logReport(
+    "Ally Al",
+    `${written} listings written${failed > 0 ? `, ${failed} failed` : ""}`
+  );
+  return NextResponse.json({ ok: true, written, failed });
 }
