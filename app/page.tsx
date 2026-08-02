@@ -1,65 +1,55 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import WorkerStation from "@/components/WorkerStation";
+import NavTabs from "@/components/NavTabs";
+import EcosystemScene from "@/components/EcosystemScene";
 import FeedConveyor from "@/components/FeedConveyor";
-import type { FeedItem } from "@/lib/types";
+import { useFeed } from "@/lib/useFeed";
+import { nextRunLabel, RESEARCH_HOURS, STORM_HOURS, ANIME_HOURS } from "@/lib/schedule";
 import styles from "./page.module.css";
 
 export default function Home() {
-  const [items, setItems] = useState<FeedItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items, loading } = useFeed();
+  const [labels, setLabels] = useState<{ research: string; storm: string; anime: string } | null>(
+    null
+  );
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const res = await fetch("/api/feed", { cache: "no-store" });
-        const data = await res.json();
-        if (!cancelled) setItems(data.items ?? []);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    function update() {
+      setLabels({
+        research: nextRunLabel(RESEARCH_HOURS),
+        storm: nextRunLabel(STORM_HOURS),
+        anime: nextRunLabel(ANIME_HOURS),
+      });
     }
-
-    load();
-    const interval = setInterval(load, 30_000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
+    update();
+    const id = setInterval(update, 30_000);
+    return () => clearInterval(id);
   }, []);
 
   return (
     <main className={styles.main}>
+      <NavTabs />
       <header className={styles.header}>
         <span className={styles.eyebrow}>Night shift · automated</span>
         <h1 className={styles.title}>Worker Bots</h1>
         <p className={styles.subtitle}>
-          Two stations on the clock. One mines new Etsy niches, one paints on a timer. Everything below
-          landed here on its own — nobody&apos;s pressing a button.
+          The whole floor at a glance — the shift lead up top, two desks doing the actual work
+          below. Click into either one for its live feed.
         </p>
       </header>
 
-      <section className={styles.stations}>
-        <WorkerStation
-          label="Research Desk"
-          role="Market scout"
-          accent="brass"
-          schedule={["Every 4 hours", "8 ideas/run, rotating category"]}
-        />
-        <WorkerStation
-          label="Studio"
-          role="Image generator"
-          accent="teal"
-          schedule={["Storms: 02, 08, 14, 20 UTC", "Anime: 05, 11, 17, 23 UTC"]}
-        />
-      </section>
+      <EcosystemScene
+        researchNextRun={labels?.research ?? "—"}
+        stormNextRun={labels?.storm ?? "—"}
+        animeNextRun={labels?.anime ?? "—"}
+      />
 
-      <section>
-        <h2 className={styles.beltHeading}>{loading ? "Reading the belt…" : `${items.length} on the belt`}</h2>
-        <FeedConveyor items={items} />
+      <section className={styles.recent}>
+        <h2 className={styles.beltHeading}>
+          {loading ? "Reading the belt…" : `${items.length} most recent, combined`}
+        </h2>
+        <FeedConveyor items={items.slice(0, 12)} />
       </section>
     </main>
   );

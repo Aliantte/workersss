@@ -1,11 +1,11 @@
 .main {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: 40px 24px 80px;
 }
 
 .header {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .eyebrow {
@@ -17,23 +17,20 @@
 
 .title {
   font-family: var(--font-display);
-  font-size: 44px;
+  font-size: 40px;
   margin: 8px 0 12px;
   color: var(--paper);
 }
 
 .subtitle {
   color: var(--muted);
-  max-width: 520px;
+  max-width: 560px;
   line-height: 1.6;
   margin: 0;
 }
 
-.stations {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 36px;
+.recent {
+  margin-top: 36px;
 }
 
 .beltHeading {
