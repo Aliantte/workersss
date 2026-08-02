@@ -20,11 +20,11 @@ export async function GET(req: NextRequest) {
 
   const [{ rows: ideaRows }, { rows: flaggedRows }, { rows: assetRows }, { rows: copyRows }, { rows: pendingRows }] =
     await Promise.all([
-      sql`SELECT COUNT(*) FROM ideas WHERE created_at > now() - interval '70 minutes'`,
-      sql`SELECT COUNT(*) FROM ideas WHERE status = 'flagged-skip' AND created_at > now() - interval '70 minutes'`,
-      sql`SELECT COUNT(*) FROM assets WHERE type = 'design' AND created_at > now() - interval '70 minutes'`,
-      sql`SELECT COUNT(*) FROM listing_copy WHERE created_at > now() - interval '70 minutes'`,
-      sql`SELECT COUNT(*) FROM ideas WHERE status = 'pending-review' AND created_at > now() - interval '70 minutes'`,
+      sql`SELECT COUNT(*) FROM ideas WHERE created_at > now() - interval '25 minutes'`,
+      sql`SELECT COUNT(*) FROM ideas WHERE status = 'flagged-skip' AND created_at > now() - interval '25 minutes'`,
+      sql`SELECT COUNT(*) FROM assets WHERE type = 'design' AND created_at > now() - interval '25 minutes'`,
+      sql`SELECT COUNT(*) FROM listing_copy WHERE created_at > now() - interval '25 minutes'`,
+      sql`SELECT COUNT(*) FROM ideas WHERE status = 'pending-review' AND created_at > now() - interval '25 minutes'`,
     ]);
 
   const ideas = Number(ideaRows[0]?.count ?? 0);

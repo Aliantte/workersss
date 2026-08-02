@@ -71,8 +71,6 @@ export default function Home() {
   const [alvinBubble, setAlvinBubble] = useState("");
   const [alvinVisible, setAlvinVisible] = useState(false);
 
-  const [toast, setToast] = useState<string | null>(null);
-
   // Poll pipeline data
   useEffect(() => {
     let cancelled = false;
@@ -162,11 +160,6 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function visit(name: string) {
-    setToast(`→ stepping into ${name}…`);
-    setTimeout(() => setToast(null), 1400);
-  }
-
   const pendingReview = data.counts["pending-review"] ?? 0;
   const approvedTotal = data.counts["approved"] ?? 0;
 
@@ -235,9 +228,8 @@ export default function Home() {
         <div
           className={`${styles.room} ${styles.research} ${styles.researchSlot}`}
           ref={roomRefs.research}
-          onClick={() => visit("the research lab")}
         >
-          <div className={styles.roomFloor} />
+          <Link href="/crew/research" className={styles.roomFloor} aria-label="Go to Research Lab" />
           <div className={styles.desk} />
           <div className={`${styles.monitor} ${styles.m1}`}>
             <div className={styles.monitorLine} />
@@ -265,9 +257,8 @@ export default function Home() {
         <div
           className={`${styles.room} ${styles.studio} ${styles.studioSlot}`}
           ref={roomRefs.studio}
-          onClick={() => visit("the studio")}
         >
-          <div className={styles.roomFloor} />
+          <Link href="/crew/studio" className={styles.roomFloor} aria-label="Go to Studio" />
           <div className={styles.easel} />
           <div className={styles.canvas}>
             <div
@@ -298,9 +289,8 @@ export default function Home() {
         <div
           className={`${styles.room} ${styles.editor} ${styles.editorSlot}`}
           ref={roomRefs.editor}
-          onClick={() => visit("the edit bay")}
         >
-          <div className={styles.roomFloor} />
+          <Link href="/crew/editor" className={styles.roomFloor} aria-label="Go to Editor" />
           <div className={styles.headphones} />
           <div className={styles.timeline}>
             <div className={styles.timelineClip} style={{ left: 6 }} />
@@ -326,9 +316,8 @@ export default function Home() {
         <div
           className={`${styles.room} ${styles.packager} ${styles.packagerSlot}`}
           ref={roomRefs.packager}
-          onClick={() => visit("the packaging bay")}
         >
-          <div className={styles.roomFloor} />
+          <Link href="/crew/packager" className={styles.roomFloor} aria-label="Go to Packaging Bay" />
           <div className={styles.crate} style={{ width: 34, height: 26, bottom: 40, left: 24 }}>
             <div className={styles.tapeLine} />
           </div>
@@ -368,27 +357,6 @@ export default function Home() {
           </span>
         </div>
       </div>
-
-      {toast && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 60,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#141018",
-            border: "1px solid var(--silver)",
-            color: "#fff",
-            fontFamily: "var(--font-mono)",
-            fontSize: 12,
-            padding: "8px 16px",
-            borderRadius: 20,
-            zIndex: 60,
-          }}
-        >
-          {toast}
-        </div>
-      )}
     </div>
   );
 }

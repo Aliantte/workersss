@@ -8,7 +8,13 @@ import { CATEGORY_LABEL, type Idea } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export const maxDuration = 280; // bumped from 120s — 2048x2048 renders take noticeably longer than 1024x1024, and this loop can process up to ~6 images sequentially
+export const maxDuration = 280;
+
+// Cap on how many images get rendered in a single invocation, regardless of
+// how many are eligible. Keeps each run comfortably inside maxDuration and
+// naturally drains any backlog over multiple cycles instead of risking a
+// timeout by trying to clear everything at once.
+const RENDER_CAP = 10;
 
 const MEETING_SYSTEM_PROMPT = `You are the joint voice of Aliantte (research), Pin Laden (design),
 and the Packager on a small Etsy digital-products team, doing a quick pre-production sync before
@@ -42,53 +48,65 @@ export async function GET(req: NextRequest) {
   await ensureSchema();
   const anthropic = new Anthropic({ apiKey });
 
-  // Find the most recent batch that still has "new" ideas and hasn't been through a meeting yet.
-  const { rows: batchRows } = await sql<{ batch_id: string }>`
-    SELECT DISTINCT i.batch_id FROM ideas i
-    WHERE i.status = 'new'
-      AND NOT EXISTS (SELECT 1 FROM meeting_notes m WHERE m.batch_id = i.batch_id)
-    ORDER BY i.batch_id DESC LIMIT 1`;
-
-  if (batchRows.length === 0) {
-    return NextResponse.json({ ok: true, message: "No new batch waiting on a sync." });
-  }
-
-  const batchId = batchRows[0].batch_id;
-  const { rows: ideas } = await sql<Idea>`SELECT * FROM ideas WHERE batch_id = ${batchId} AND status = 'new'`;
-
   try {
-    // --- Sync meeting ---
-    const meetingMsg = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_IDEA_MODEL || "claude-haiku-4-5-20251001",
-      max_tokens: 800,
-      system: MEETING_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: buildMeetingPrompt(ideas) }],
-    });
-    const meetingText = meetingMsg.content.find((b) => b.type === "text");
-    const meetingRaw = meetingText && "text" in meetingText ? meetingText.text : "{}";
-    const meeting: { notes: string; flag_ids: number[] } = JSON.parse(
-      meetingRaw.replace(/```json|```/g, "").trim()
-    );
+    // --- Phase 1: run the sync meeting for EVERY batch still waiting on one ---
+    // Cheap, fast text-only calls — no reason to let these fall behind, so all
+    // pending batches get processed in one run, oldest first.
+    const { rows: pendingBatches } = await sql<{ batch_id: string }>`
+      SELECT DISTINCT i.batch_id FROM ideas i
+      WHERE i.status = 'new'
+        AND NOT EXISTS (SELECT 1 FROM meeting_notes m WHERE m.batch_id = i.batch_id)
+      ORDER BY i.batch_id ASC`;
 
-    await sql`INSERT INTO meeting_notes (batch_id, notes) VALUES (${batchId}, ${meeting.notes})`;
+    let meetingsRun = 0;
+    let flaggedTotal = 0;
 
-    const flagIds = new Set(meeting.flag_ids || []);
-    for (const id of flagIds) {
-      await sql`UPDATE ideas SET status = 'flagged-skip' WHERE id = ${id}`;
+    for (const { batch_id } of pendingBatches) {
+      const { rows: batchIdeas } = await sql<Idea>`SELECT * FROM ideas WHERE batch_id = ${batch_id} AND status = 'new'`;
+
+      const meetingMsg = await anthropic.messages.create({
+        model: process.env.ANTHROPIC_IDEA_MODEL || "claude-haiku-4-5-20251001",
+        max_tokens: 800,
+        system: MEETING_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: buildMeetingPrompt(batchIdeas) }],
+      });
+      const meetingText = meetingMsg.content.find((b) => b.type === "text");
+      const meetingRaw = meetingText && "text" in meetingText ? meetingText.text : "{}";
+      const meeting: { notes: string; flag_ids: number[] } = JSON.parse(
+        meetingRaw.replace(/```json|```/g, "").trim()
+      );
+
+      await sql`INSERT INTO meeting_notes (batch_id, notes) VALUES (${batch_id}, ${meeting.notes})`;
+
+      const flagIds: number[] = meeting.flag_ids || [];
+      for (const id of flagIds) {
+        await sql`UPDATE ideas SET status = 'flagged-skip' WHERE id = ${id}`;
+      }
+
+      meetingsRun++;
+      flaggedTotal += flagIds.length;
     }
 
-    const feasible = ideas.filter((i) => !flagIds.has(i.id));
+    // --- Phase 2: render a bounded pool of images across ALL met batches ---
+    // Not tied to whichever batch just had its meeting — pulls the oldest
+    // eligible ideas across everything waiting, so a backlog drains evenly
+    // instead of newer batches jumping the queue.
+    const { rows: renderCandidates } = await sql<Idea>`
+      SELECT i.* FROM ideas i
+      JOIN meeting_notes m ON m.batch_id = i.batch_id
+      WHERE i.status = 'new'
+      ORDER BY i.created_at ASC
+      LIMIT ${RENDER_CAP}`;
 
-    // --- Design generation for whatever survived the sync ---
     let rendered = 0;
     const token = process.env.POLLINATIONS_TOKEN;
 
-    for (const idea of feasible) {
+    for (const idea of renderCandidates) {
       const prompt = buildImagePrompt(idea);
       const seed = Math.floor(Math.random() * 1_000_000);
       const params = new URLSearchParams({
-        width: "2048",
-        height: "2048",
+        width: "1536",
+        height: "1536",
         seed: String(seed),
         nologo: "true",
         ...(token ? { token } : {}),
@@ -111,10 +129,10 @@ export async function GET(req: NextRequest) {
 
     await logReport(
       "Pin Laden",
-      `${rendered} designs rendered, batch ${batchId} (${flagIds.size} flagged in sync)`
+      `${rendered} designs rendered, ${meetingsRun} batch sync${meetingsRun === 1 ? "" : "s"} run (${flaggedTotal} flagged)`
     );
 
-    return NextResponse.json({ ok: true, batchId, rendered, flagged: flagIds.size });
+    return NextResponse.json({ ok: true, meetingsRun, rendered, flaggedTotal });
   } catch (err) {
     console.error("studio cron failed", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
