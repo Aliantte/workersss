@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import NavTabs from "@/components/NavTabs";
-import EcosystemScene from "@/components/EcosystemScene";
-import FeedConveyor from "@/components/FeedConveyor";
+import Tower from "@/components/Tower";
+import ActivityTicker from "@/components/ActivityTicker";
 import { useFeed } from "@/lib/useFeed";
 import { nextRunLabel, RESEARCH_HOURS, STORM_HOURS, ANIME_HOURS } from "@/lib/schedule";
 import styles from "./page.module.css";
 
 export default function Home() {
-  const { items, loading } = useFeed();
+  const { items } = useFeed();
   const [labels, setLabels] = useState<{ research: string; storm: string; anime: string } | null>(
     null
   );
@@ -34,23 +34,18 @@ export default function Home() {
         <span className={styles.eyebrow}>Night shift · automated</span>
         <h1 className={styles.title}>Worker Bots</h1>
         <p className={styles.subtitle}>
-          The whole floor at a glance — the shift lead up top, two desks doing the actual work
-          below. Click into either one for its live feed.
+          The whole tower at a glance — shift lead up top, two desks doing the actual work below.
+          Click into either floor for its live feed.
         </p>
       </header>
 
-      <EcosystemScene
+      <Tower
         researchNextRun={labels?.research ?? "—"}
         stormNextRun={labels?.storm ?? "—"}
         animeNextRun={labels?.anime ?? "—"}
       />
 
-      <section className={styles.recent}>
-        <h2 className={styles.beltHeading}>
-          {loading ? "Reading the belt…" : `${items.length} most recent, combined`}
-        </h2>
-        <FeedConveyor items={items.slice(0, 12)} />
-      </section>
+      <ActivityTicker items={items} />
     </main>
   );
 }

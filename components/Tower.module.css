@@ -1,0 +1,105 @@
+.tower {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+
+.rooftop {
+  width: 100%;
+  display: block;
+}
+
+.rooftopWall {
+  fill: var(--bg-raised);
+}
+
+.rooftopBox {
+  fill: var(--bg);
+  stroke: var(--line);
+  stroke-width: 1.2;
+}
+
+.dishArm,
+.antennaPole {
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.dish {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+}
+
+.antennaLight {
+  fill: var(--red-lamp);
+  animation: blinkRed 1.4s ease-in-out infinite;
+}
+
+@keyframes blinkRed {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.shaftColumn {
+  position: absolute;
+  top: 60px;
+  right: 22px;
+  bottom: 0;
+  width: 12px;
+  pointer-events: none;
+}
+
+.shaftLine {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--line);
+}
+
+.car {
+  position: absolute;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateX(-50%);
+  background: var(--brass);
+  border-radius: 3px;
+  box-shadow: 0 0 8px 1px var(--brass-dim);
+  animation: elevatorMove 9s ease-in-out infinite;
+}
+
+@keyframes elevatorMove {
+  0%,
+  12% {
+    top: 8%;
+  }
+  38%,
+  50% {
+    top: 42%;
+  }
+  76%,
+  88% {
+    top: 76%;
+  }
+  100% {
+    top: 8%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .car {
+    animation: none;
+    top: 8%;
+  }
+}
