@@ -1,0 +1,7 @@
+{
+  "crons": [
+    { "path": "/api/cron/etsy-ideas", "schedule": "0 0,4,8,12,16,20 * * *" },
+    { "path": "/api/cron/generate-image?theme=storm", "schedule": "0 2,8,14,20 * * *" },
+    { "path": "/api/cron/generate-image?theme=anime", "schedule": "0 5,11,17,23 * * *" }
+  ]
+}
