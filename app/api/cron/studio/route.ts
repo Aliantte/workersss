@@ -13,8 +13,14 @@ export const maxDuration = 280;
 // Cap on how many images get rendered in a single invocation, regardless of
 // how many are eligible. Keeps each run comfortably inside maxDuration and
 // naturally drains any backlog over multiple cycles instead of risking a
-// timeout by trying to clear everything at once.
-const RENDER_CAP = 10;
+// timeout by trying to clear everything at once. Lowered from 10 after a real
+// run hit the 280s ceiling and got killed mid-work (FUNCTION_INVOCATION_TIMEOUT) —
+// Pollinations response time varies enough that 10 images at 1536px wasn't safe.
+const RENDER_CAP = 6;
+
+// Bounds the sync-meeting phase too, so a large backlog of un-met batches
+// can't itself eat the time budget before rendering even starts.
+const MEETING_CAP = 4;
 
 const MEETING_SYSTEM_PROMPT = `You are the joint voice of Aliantte (research), Pin Laden (design),
 and the Packager on a small Etsy digital-products team, doing a quick pre-production sync before
@@ -61,7 +67,7 @@ export async function GET(req: NextRequest) {
     let meetingsRun = 0;
     let flaggedTotal = 0;
 
-    for (const { batch_id } of pendingBatches) {
+    for (const { batch_id } of pendingBatches.slice(0, MEETING_CAP)) {
       const { rows: batchIdeas } = await sql<Idea>`SELECT * FROM ideas WHERE batch_id = ${batch_id} AND status = 'new'`;
 
       const meetingMsg = await anthropic.messages.create({
@@ -105,8 +111,8 @@ export async function GET(req: NextRequest) {
       const prompt = buildImagePrompt(idea);
       const seed = Math.floor(Math.random() * 1_000_000);
       const params = new URLSearchParams({
-        width: "1536",
-        height: "1536",
+        width: "1280",
+        height: "1280",
         seed: String(seed),
         nologo: "true",
         ...(token ? { token } : {}),
