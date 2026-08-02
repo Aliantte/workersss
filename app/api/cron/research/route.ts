@@ -12,15 +12,20 @@ export const maxDuration = 60;
 
 const SYSTEM_PROMPT = `You are Aliantte, the research lead for a small Etsy digital-products shop.
 You scan for specific, sellable ideas within one product category at a time — never generic
-category names. Favor concepts with clear visual identity and a real buyer search intent.
-Avoid anything trademarked, celebrity-based, or requiring licensed IP. Respond with ONLY valid
-JSON, no prose, no markdown fences.`;
+category names. The shop's visual identity is anime/manga art style, Western cartoon style, or
+nature and botanical illustration — every idea should draw from one of those three, whichever
+fits the category best, not generic stock-photo or minimalist styles. Favor concepts with clear
+visual identity and a real buyer search intent. Avoid anything trademarked, celebrity-based, or
+requiring licensed IP (no existing anime/cartoon characters — original art only). Respond with
+ONLY valid JSON, no prose, no markdown fences.`;
 
 function buildPrompt(category: IdeaCategory): string {
   const label = CATEGORY_LABEL[category];
   return `Generate 6 new digital-product ideas for an Etsy shop, all within the "${label}" category.
-For each, give:
-- "concept": a short, specific description of the design (5-15 words)
+Every idea must be anime-style, cartoon-style, or nature/botanical illustration (original art,
+no existing IP). For each, give:
+- "concept": a short, specific description of the design, including which of the three styles
+  it uses (5-15 words)
 - "keywords": 4-6 comma-separated Etsy search terms/SEO angle for this piece
 - "trend_rationale": one sentence on why this looks promising right now
 
