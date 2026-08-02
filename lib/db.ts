@@ -18,7 +18,15 @@ function getClient() {
         "Missing DATABASE_URL. Add a Postgres (Neon) integration in your Vercel project's Storage tab."
       );
     }
-    _sql = neon(connectionString, { fullResults: true });
+    _sql = neon(connectionString, {
+      fullResults: true,
+      // Next.js patches the global fetch() to cache responses by default in
+      // Route Handlers. The Neon driver talks to its Data API over fetch()
+      // internally, and `export const dynamic = "force-dynamic"` on a route
+      // does NOT reliably stop Next from caching a third-party library's own
+      // fetch calls — that needs to be told explicitly, per-request.
+      fetchOptions: { cache: "no-store" },
+    });
   }
   return _sql;
 }
