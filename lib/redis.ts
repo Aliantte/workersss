@@ -5,11 +5,15 @@ const FEED_KEY = "worker-bots:feed";
 const FEED_MAX_LENGTH = 100;
 
 export function getRedis() {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // The Vercel/Upstash marketplace integration currently names these
+  // KV_REST_API_URL / KV_REST_API_TOKEN (legacy Vercel KV naming). Support
+  // both that and the plain Upstash names so this works regardless of which
+  // one actually got created.
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) {
     throw new Error(
-      "Missing UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN. Add the Upstash integration in your Vercel project, or set these env vars locally."
+      "Missing Redis credentials. Add the Upstash integration in your Vercel project (Storage tab), or set UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN locally."
     );
   }
   return new Redis({ url, token });
