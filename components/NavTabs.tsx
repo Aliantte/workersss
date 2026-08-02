@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import styles from "./NavTabs.module.css";
 
 const TABS = [
-  { href: "/", label: "Ecosystem" },
-  { href: "/research", label: "Research Desk" },
-  { href: "/studio", label: "Studio" },
+  { href: "/", label: "The Trap" },
+  { href: "/review", label: "Review Queue" },
+  { href: "/library", label: "Library" },
 ];
 
 export default function NavTabs() {

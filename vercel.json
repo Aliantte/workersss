@@ -1,7 +1,9 @@
 {
   "crons": [
-    { "path": "/api/cron/etsy-ideas", "schedule": "0 0,4,8,12,16,20 * * *" },
-    { "path": "/api/cron/generate-image?theme=storm", "schedule": "0 2,8,14,20 * * *" },
-    { "path": "/api/cron/generate-image?theme=anime", "schedule": "0 5,11,17,23 * * *" }
+    { "path": "/api/cron/research", "schedule": "0 1,11,13,15,17,19,21,23 * * *" },
+    { "path": "/api/cron/studio", "schedule": "15 1,11,13,15,17,19,21,23 * * *" },
+    { "path": "/api/cron/editor", "schedule": "35 1,11,13,15,17,19,21,23 * * *" },
+    { "path": "/api/cron/packager", "schedule": "50 1,11,13,15,17,19,21,23 * * *" },
+    { "path": "/api/cron/alvin", "schedule": "55 1,11,13,15,17,19,21,23 * * *" }
   ]
 }

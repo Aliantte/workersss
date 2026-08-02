@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
+import { sql, ensureSchema } from "@/lib/db";
+import { isAuthorizedCronRequest } from "@/lib/auth";
+import { logReport } from "@/lib/reports";
+import { pickCategory } from "@/lib/categories";
+import { CATEGORY_LABEL, type IdeaCategory } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
+
+export const maxDuration = 60;
+
+const SYSTEM_PROMPT = `You are Aliantte, the research lead for a small Etsy digital-products shop.
+You scan for specific, sellable ideas within one product category at a time — never generic
+category names. Favor concepts with clear visual identity and a real buyer search intent.
+Avoid anything trademarked, celebrity-based, or requiring licensed IP. Respond with ONLY valid
+JSON, no prose, no markdown fences.`;
+
+function buildPrompt(category: IdeaCategory): string {
+  const label = CATEGORY_LABEL[category];
+  return `Generate 6 new digital-product ideas for an Etsy shop, all within the "${label}" category.
+For each, give:
+- "concept": a short, specific description of the design (5-15 words)
+- "keywords": 4-6 comma-separated Etsy search terms/SEO angle for this piece
+- "trend_rationale": one sentence on why this looks promising right now
+
+Return as a JSON array of exactly 6 objects with keys: concept, keywords, trend_rationale.`;
+}
+
+export async function GET(req: NextRequest) {
+  if (!isAuthorizedCronRequest(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "Missing ANTHROPIC_API_KEY" }, { status: 500 });
+  }
+
+  await ensureSchema();
+
+  const category = pickCategory();
+  const batchId = `batch_${Date.now()}`;
+  const anthropic = new Anthropic({ apiKey });
+
+  try {
+    const message = await anthropic.messages.create({
+      model: process.env.ANTHROPIC_IDEA_MODEL || "claude-haiku-4-5-20251001",
+      max_tokens: 1200,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: buildPrompt(category) }],
+    });
+
+    const textBlock = message.content.find((b) => b.type === "text");
+    const raw = textBlock && "text" in textBlock ? textBlock.text : "[]";
+    const cleaned = raw.replace(/```json|```/g, "").trim();
+    const ideas: { concept: string; keywords: string; trend_rationale: string }[] =
+      JSON.parse(cleaned);
+
+    for (const idea of ideas) {
+      await sql`INSERT INTO ideas (batch_id, category, concept, keywords, trend_rationale, status)
+                VALUES (${batchId}, ${category}, ${idea.concept}, ${idea.keywords}, ${idea.trend_rationale}, 'new')`;
+    }
+
+    await logReport(
+      "Aliantte",
+      `${ideas.length} ideas generated (${CATEGORY_LABEL[category]}), batch ${batchId}`
+    );
+
+    return NextResponse.json({ ok: true, batchId, category, count: ideas.length });
+  } catch (err) {
+    console.error("research cron failed", err);
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+  }
+}

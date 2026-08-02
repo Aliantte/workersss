@@ -1,34 +1,42 @@
-# Worker Bots
+# The Trap — Night Shift Etsy Pipeline
 
-Two automated workers running on a schedule, feeding a live "conveyor belt" dashboard:
+A five-stage automated pipeline for an Etsy digital-products shop, with a review queue where
+you make the final call. Visualized as a neon "lair" — five rooms, each with its own worker,
+wandering sprites, a supervisor doing rounds, and a live activity ticker.
 
-- **Research Desk** — calls Claude to generate new Etsy niche ideas, twice a day.
-- **Studio** — calls the free Pollinations.ai image API to generate a storm landscape
-  in the morning and an anime portrait/action shot at night.
+## The crew
 
-Both are triggered by Vercel Cron Jobs (see `vercel.json`) and write to a shared Redis
-feed that the dashboard polls every 30 seconds.
+| Room | Who | Job |
+|---|---|---|
+| Research Lab | **Aliantte** | Every 4h, generates 6 digital-product ideas (wall art, mug/tumbler wraps, phone wallpapers, digital planners, sticker sheets — rotates by hour) |
+| Studio | **Pin Laden** | Runs a quick "sync meeting" on the new batch (flags anything infeasible), then renders a design for everything that survives it |
+| Editor | **Ally Al** | Writes Etsy-style title/tags/description for each rendered design |
+| Packaging Bay | **Boxley** | Verifies design + copy both exist, bundles the idea and sends it to review |
+| Boardroom | **Big Al** (you) | Approve or reject each packaged idea at `/review` — approved items land in `/library`, rejected ones are archived with a reason, nothing is deleted |
+| — | **Alvin** | Roams all five rooms, logs a deterministic end-of-cycle summary (no LLM call — it's just counts) that feeds the ticker |
 
-## Schedule (tuned for Vercel Pro)
+## Pipeline flow (one cycle, every 2 hours, 7am-9pm EDT)
 
-This is set up for the **Pro** plan, which removes the once-per-day cap Hobby has and
-gives per-minute precision:
+```
+:00  Aliantte generates a new batch of ideas          → status: new
+:15  Pin Laden runs the sync meeting, then renders     → status: image-ready
+     designs for whatever wasn't flagged
+:35  Ally Al writes listing copy                       → status: ready-to-package
+:50  Boxley bundles and sends to review                → status: pending-review
+:55  Alvin logs the cycle summary
+ —   You approve/reject at /review                     → status: approved / archived
+```
 
-- **Research Desk** — every 4 hours (`0 0,4,8,12,16,20 * * *`), 8 ideas per run,
-  48 ideas/day. Each run is handed a different category lens (home decor, jewelry,
-  digital downloads, pet products, wedding, seasonal, stationery, craft supplies),
-  rotating by hour, so the ideas don't converge on the same handful of niches.
-- **Studio** — an image roughly every 3 hours: storms at 02/08/14/20 UTC, anime
-  portraits/action at 05/11/17/23 UTC. Both use combinatorial prompt building
-  (subject × weather/action × mood, picked independently) instead of a fixed list,
-  so at this frequency you won't see the same prompt twice for a long time.
+That's 8 cycles/day (7, 9, 11, 13, 15, 17, 19, 21 EDT), roughly $3-4/month in Anthropic spend at current pricing. Cron times in `vercel.json` are fixed UTC — they'll drift by an hour relative to EDT/EST when daylight saving changes, since Vercel doesn't auto-adjust for that.
 
-If you're actually on Hobby, note the once-per-day-per-job cap: split each of these
-into separate single-time cron entries instead (still allowed, just define more jobs)
-or drop the frequency. Want it even busier than this? Cron entries are cheap — add
-more time slots to `vercel.json`, keeping an eye on your Anthropic API spend and
-Pollinations' anonymous rate limit (register for a free token if you push past
-roughly 1 image request per 15 seconds).
+Each stage is its own Vercel Cron job (see `vercel.json`), staggered so there's real work
+waiting when the next one runs.
+
+## Mockups — deferred
+
+The Packaging Bay doesn't generate product mockups (design-on-a-mug, art-on-a-wall) yet —
+that was intentionally deferred. Approved items today have a raw design + listing copy, no
+mockup images. The Packager route is where that logic would slot in later.
 
 ## Setup
 
@@ -37,47 +45,46 @@ roughly 1 image request per 15 seconds).
    npm install
    ```
 
-2. **Get an Anthropic API key** at [console.anthropic.com](https://console.anthropic.com/)
-   for the Research Desk worker.
+2. **Get an Anthropic API key** at [console.anthropic.com](https://console.anthropic.com/).
 
-3. **Get a free Redis DB** — easiest path is adding the Upstash integration from your
-   Vercel project's Storage tab after your first deploy (it injects the env vars for
-   you automatically). For local dev, create one free at
-   [console.upstash.com](https://console.upstash.com/) and copy the REST URL + token.
+3. **Get a Postgres database.** Easiest path: after your first Vercel deploy, go to your
+   project's Storage tab → add a **Postgres (Neon)** integration. It injects `DATABASE_URL`
+   automatically. Tables are created automatically on first request — no manual migration.
 
-4. **Copy `.env.example` to `.env.local`** and fill in the values.
+4. **Get Blob storage.** Same Storage tab → add a **Blob** store. Injects
+   `BLOB_READ_WRITE_TOKEN` automatically.
 
-5. **Run locally**
+5. **Copy `.env.example` to `.env.local`** and fill in what you have for local dev.
+
+6. **Run locally**
    ```
    npm run dev
    ```
-   Visit `http://localhost:3000`. It'll show an empty belt until a worker runs — trigger
-   one manually:
+   Trigger a full cycle manually to test:
    ```
-   curl http://localhost:3000/api/cron/etsy-ideas
-   curl "http://localhost:3000/api/cron/generate-image?theme=storm"
+   curl http://localhost:3000/api/cron/research
+   curl http://localhost:3000/api/cron/studio
+   curl http://localhost:3000/api/cron/editor
+   curl http://localhost:3000/api/cron/packager
+   curl http://localhost:3000/api/cron/alvin
    ```
+   Then check `/review` for packaged items.
 
-## Deploying to your domain
+## Deploying
 
-1. Push this to a GitHub repo, import it into Vercel, and add your domain in the
-   project's Domains settings.
-2. Add the `ANTHROPIC_API_KEY` env var in the Vercel project settings.
-3. Add the Upstash Redis integration (Storage tab → Browse Marketplace → Upstash) —
-   it wires up `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` for you.
-4. Deploy. Vercel reads `vercel.json` and registers the four cron jobs automatically —
-   you'll see them listed under the project's Cron Jobs tab, along with a manual
-   "Run now" button for testing without waiting for the schedule.
+1. Push to GitHub, import into Vercel, add your domain.
+2. Add `ANTHROPIC_API_KEY` in Environment Variables.
+3. Add the Postgres (Neon) and Blob integrations from the Storage tab.
+4. Deploy. Vercel reads `vercel.json` and registers the five cron jobs automatically — visible
+   under the project's Cron Jobs tab, with a manual "Run" option for testing.
 
-## Extending it
+## Data model
 
-- **More/faster image drops**: add more entries to `vercel.json`, or upgrade to Pro
-  for per-minute cron precision.
-- **Real image permanence**: Pollinations URLs are hotlinked, not stored — for a
-  project you care about long-term, download the bytes in `generate-image/route.ts`
-  and upload to Vercel Blob storage instead, then store that URL.
-- **Smarter research**: give the Research Desk worker web search access (Anthropic's
-  web search tool, or your own scraping) so ideas are grounded in real current trends
-  instead of the model's own knowledge.
-- **More stations**: the pattern is: a cron route that does work, pushes a `FeedItem`
-  via `pushFeedItem()`, and a new card style in `FeedConveyor.tsx`.
+- **ideas** — id, batch_id, category, concept, keywords, trend_rationale, status, reject_reason, created_at
+- **assets** — idea_id, type, url, created_at
+- **listing_copy** — idea_id, title, tags, description, created_at
+- **reports** — employee, summary, created_at (feeds the ticker)
+- **meeting_notes** — batch_id, notes, created_at (the sync step's output)
+
+`status` moves through: `new` → (`flagged-skip` or) `image-ready` → `ready-to-package` →
+`pending-review` → `approved` or `archived`.

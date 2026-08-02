@@ -1,0 +1,155 @@
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 24px 80px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  color: #fff;
+  text-shadow: 0 0 6px var(--neon-pink);
+  margin: 12px 0 6px;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  max-width: 560px;
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+
+.empty {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-dim);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  background: var(--wall);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.imagePlaceholder {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--floor);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.body {
+  padding: 14px;
+}
+
+.category {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--neon-pink);
+}
+
+.itemTitle {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  margin: 4px 0 6px;
+  line-height: 1.4;
+}
+
+.tags {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--neon-cyan);
+  margin: 0 0 8px;
+}
+
+.desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.approve,
+.reject {
+  flex: 1;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.approve {
+  background: var(--hud-green);
+  color: #04160d;
+}
+
+.reject {
+  background: transparent;
+  border: 1px solid rgba(255, 63, 164, 0.5);
+  color: var(--neon-pink);
+}
+
+.reasonRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.reasonInput {
+  flex: 1;
+  background: var(--floor);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: #fff;
+  font-size: 12px;
+}
+
+.confirmReject {
+  border: none;
+  border-radius: 6px;
+  background: var(--neon-pink);
+  color: #2b0016;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 0 10px;
+  cursor: pointer;
+}
