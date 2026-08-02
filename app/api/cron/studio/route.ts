@@ -8,7 +8,7 @@ import { CATEGORY_LABEL, type Idea } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export const maxDuration = 120;
+export const maxDuration = 280; // bumped from 120s — 2048x2048 renders take noticeably longer than 1024x1024, and this loop can process up to ~6 images sequentially
 
 const MEETING_SYSTEM_PROMPT = `You are the joint voice of Aliantte (research), Pin Laden (design),
 and the Packager on a small Etsy digital-products team, doing a quick pre-production sync before
@@ -26,7 +26,7 @@ function buildMeetingPrompt(ideas: Idea[]): string {
 
 function buildImagePrompt(idea: Idea): string {
   const label = CATEGORY_LABEL[idea.category];
-  return `${label}: ${idea.concept}. Clean commercial print-ready design, high detail, professional Etsy digital product listing style, no text or watermark.`;
+  return `${label}: ${idea.concept}. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, sharp clean linework, vibrant professional color, commercial print-ready quality, no text or watermark.`;
 }
 
 export async function GET(req: NextRequest) {
@@ -87,8 +87,8 @@ export async function GET(req: NextRequest) {
       const prompt = buildImagePrompt(idea);
       const seed = Math.floor(Math.random() * 1_000_000);
       const params = new URLSearchParams({
-        width: "1024",
-        height: "1024",
+        width: "2048",
+        height: "2048",
         seed: String(seed),
         nologo: "true",
         ...(token ? { token } : {}),

@@ -558,10 +558,48 @@
   }
 }
 
+.bossSlot {
+  grid-column: 1 / 4;
+  grid-row: 1;
+}
+.researchSlot {
+  grid-column: 1;
+  grid-row: 3;
+}
+.studioSlot {
+  grid-column: 3;
+  grid-row: 3;
+}
+.editorSlot {
+  grid-column: 1;
+  grid-row: 5;
+}
+.packagerSlot {
+  grid-column: 3;
+  grid-row: 5;
+}
+.hallwayV1 {
+  grid-row: 3;
+}
+.hallwayV2 {
+  grid-row: 5;
+}
+
 @media (max-width: 640px) {
   .map {
     grid-template-columns: 1fr;
     grid-template-rows: none;
+  }
+  /* Rooms were pinned to specific columns/rows for the desktop grid — reset
+     them here so all five stack in one column instead of a couple landing
+     in a column that no longer exists and disappearing. */
+  .bossSlot,
+  .researchSlot,
+  .studioSlot,
+  .editorSlot,
+  .packagerSlot {
+    grid-column: 1;
+    grid-row: auto;
   }
   .hallwayH,
   .hallwayV {

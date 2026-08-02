@@ -3,17 +3,30 @@ import { neon } from "@neondatabase/serverless";
 let _sql: ReturnType<typeof neon> | null = null;
 
 // @vercel/postgres is deprecated; Vercel's Neon integration (Storage tab → Postgres)
-// sets DATABASE_URL (and, for compatibility, POSTGRES_URL) — this reads whichever
-// exists, lazily, so a missing env var doesn't crash the module at import time.
+// usually sets DATABASE_URL/POSTGRES_URL, but a custom variable prefix on the
+// connection can result in nb_DATABASE_URL / nb_POSTGRES_URL instead — check all
+// of them, lazily, so a missing env var doesn't crash the module at import time.
 function getClient() {
   if (!_sql) {
-    const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+    const connectionString =
+      process.env.DATABASE_URL ||
+      process.env.POSTGRES_URL ||
+      process.env.nb_DATABASE_URL ||
+      process.env.nb_POSTGRES_URL;
     if (!connectionString) {
       throw new Error(
         "Missing DATABASE_URL. Add a Postgres (Neon) integration in your Vercel project's Storage tab."
       );
     }
-    _sql = neon(connectionString, { fullResults: true });
+    _sql = neon(connectionString, {
+      fullResults: true,
+      // Next.js patches the global fetch() to cache responses by default in
+      // Route Handlers. The Neon driver talks to its Data API over fetch()
+      // internally, and `export const dynamic = "force-dynamic"` on a route
+      // does NOT reliably stop Next from caching a third-party library's own
+      // fetch calls — that needs to be told explicitly, per-request.
+      fetchOptions: { cache: "no-store" },
+    });
   }
   return _sql;
 }

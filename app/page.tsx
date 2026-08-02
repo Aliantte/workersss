@@ -207,9 +207,8 @@ export default function Home() {
 
       <div className={styles.map} ref={mapRef}>
         <div
-          className={`${styles.room} ${styles.boss}`}
+          className={`${styles.room} ${styles.boss} ${styles.bossSlot}`}
           ref={roomRefs.boss}
-          style={{ gridColumn: "1 / 4", gridRow: 1 }}
         >
           <Link href="/review" className={styles.roomFloor} aria-label="Go to review queue" />
           <div className={styles.bossDesk} />
@@ -234,9 +233,8 @@ export default function Home() {
         <div className={styles.hallwayH} />
 
         <div
-          className={`${styles.room} ${styles.research}`}
+          className={`${styles.room} ${styles.research} ${styles.researchSlot}`}
           ref={roomRefs.research}
-          style={{ gridColumn: 1, gridRow: 3 }}
           onClick={() => visit("the research lab")}
         >
           <div className={styles.roomFloor} />
@@ -262,12 +260,11 @@ export default function Home() {
           <div className={styles.roomDesc}>Etsy digital-product ideas, every 4h</div>
         </div>
 
-        <div className={styles.hallwayV} style={{ gridRow: 3 }} />
+        <div className={`${styles.hallwayV} ${styles.hallwayV1}`} />
 
         <div
-          className={`${styles.room} ${styles.studio}`}
+          className={`${styles.room} ${styles.studio} ${styles.studioSlot}`}
           ref={roomRefs.studio}
-          style={{ gridColumn: 3, gridRow: 3 }}
           onClick={() => visit("the studio")}
         >
           <div className={styles.roomFloor} />
@@ -299,9 +296,8 @@ export default function Home() {
         <div className={styles.hallwayH} />
 
         <div
-          className={`${styles.room} ${styles.editor}`}
+          className={`${styles.room} ${styles.editor} ${styles.editorSlot}`}
           ref={roomRefs.editor}
-          style={{ gridColumn: 1, gridRow: 5 }}
           onClick={() => visit("the edit bay")}
         >
           <div className={styles.roomFloor} />
@@ -325,12 +321,11 @@ export default function Home() {
           <div className={styles.roomDesc}>Writes listing copy, QA before it ships</div>
         </div>
 
-        <div className={styles.hallwayV} style={{ gridRow: 5 }} />
+        <div className={`${styles.hallwayV} ${styles.hallwayV2}`} />
 
         <div
-          className={`${styles.room} ${styles.packager}`}
+          className={`${styles.room} ${styles.packager} ${styles.packagerSlot}`}
           ref={roomRefs.packager}
-          style={{ gridColumn: 3, gridRow: 5 }}
           onClick={() => visit("the packaging bay")}
         >
           <div className={styles.roomFloor} />
