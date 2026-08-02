@@ -1,0 +1,108 @@
+.belt {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 24px 4px 32px;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--line) 0,
+    var(--line) 2px,
+    transparent 2px,
+    transparent 28px
+  );
+  background-position: 0 100%;
+  background-size: 100% 2px;
+  background-repeat: no-repeat;
+}
+
+.card {
+  flex: 0 0 260px;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  animation: slideIn 0.4s ease both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.research {
+  border-top: 3px solid var(--brass);
+}
+
+.studio {
+  border-top: 3px solid var(--teal);
+}
+
+.tag {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  margin: 0;
+  color: var(--paper);
+}
+
+.niche {
+  font-size: 11px;
+  color: var(--brass);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.reasoning {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+}
+
+.prompt {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.time {
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.7;
+  align-self: flex-end;
+}
+
+.empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
