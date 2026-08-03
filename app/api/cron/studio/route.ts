@@ -38,6 +38,9 @@ function buildMeetingPrompt(ideas: Idea[]): string {
 
 function buildImagePrompt(idea: Idea): string {
   const label = CATEGORY_LABEL[idea.category];
+  if (idea.category === "coloring_page") {
+    return `${label}: ${idea.concept}. Black and white line art ONLY — no color, no shading, no greyscale fill. Bold, clean, evenly-weighted outlines suitable for printing and coloring in. Anime/manga style, Western cartoon style, or nature/botanical subject — whichever the concept calls for. High resolution, crisp lines, white background, no text or watermark.`;
+  }
   return `${label}: ${idea.concept}. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, sharp clean linework, vibrant professional color, commercial print-ready quality, no text or watermark.`;
 }
 
