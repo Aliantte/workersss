@@ -19,6 +19,13 @@ Respond with ONLY valid JSON, no prose, no markdown fences.`;
 
 function buildPrompt(post: Post): string {
   const label = NICHE_LABEL[post.niche as SocialNiche] ?? post.niche;
+
+  if (post.niche === "twitch_clip_roundup" && post.source_credit) {
+    return `This is a real Twitch clip, not an original idea. Broadcaster: ${post.source_credit}. Clip details: ${post.hook}.
+
+Write a hype caption crediting ${post.source_credit} by name, encouraging people to go watch the full clip (don't claim this content as original — you're sharing/boosting a real streamer's moment). Respond with JSON: {"caption": "the full caption, hook line first, under 120 words, credits the streamer by name", "hashtags": "8-12 space-separated hashtags relevant to Twitch/gaming/the game mentioned"}`;
+  }
+
   return `Niche: ${label}. Post concept: ${post.hook}.
 
 Write the caption. Respond with JSON: {"caption": "the full caption, hook line first, under 150 words", "hashtags": "10-15 space-separated hashtags, mix of broad and niche-specific"}`;
@@ -56,8 +63,15 @@ export async function GET(req: NextRequest) {
         raw.replace(/```json|```/g, "").trim()
       );
 
+      // The link is appended in code, never left to the model to reproduce —
+      // a hallucinated URL here would be a broken credit, not just a typo.
+      const finalCaption =
+        post.niche === "twitch_clip_roundup" && post.source_url
+          ? `${copy.caption}\n\nWatch the full clip: ${post.source_url}`
+          : copy.caption;
+
       await sql`INSERT INTO post_copy (post_id, caption, hashtags)
-                VALUES (${post.id}, ${copy.caption}, ${copy.hashtags})
+                VALUES (${post.id}, ${finalCaption}, ${copy.hashtags})
                 ON CONFLICT (post_id) DO UPDATE SET
                   caption = EXCLUDED.caption, hashtags = EXCLUDED.hashtags`;
       // Straight to pending-review — no separate bundler stage the way the

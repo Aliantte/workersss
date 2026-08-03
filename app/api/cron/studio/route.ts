@@ -4,20 +4,19 @@ import { put } from "@vercel/blob";
 import { sql, ensureSchema } from "@/lib/db";
 import { isAuthorizedCronRequest } from "@/lib/auth";
 import { logReport } from "@/lib/reports";
+import { getNumberSetting } from "@/lib/settings";
 import { CATEGORY_LABEL, type Idea } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export const maxDuration = 280;
 
-// Resolution went up (1280 -> 1536), so this cap came down (6 -> 4) to
-// compensate — the actual budget is roughly render_cap * pixel_count, and
-// this keeps that number close to what the last known-good run (6 @ 1280)
-// actually cleared within 280s, rather than just cranking resolution up blind.
-const RENDER_CAP = 4;
+// Defaults if Boardroom hasn't adjusted anything yet. Hard bounds enforced in
+// getNumberSetting() below — Boardroom can nudge these, but never past 1-8
+// for the cap or 768-2048 for resolution, regardless of what it decides.
+const DEFAULT_RENDER_CAP = 4;
+const DEFAULT_RESOLUTION = 1536;
 
-// Bounds the sync-meeting phase too, so a large backlog of un-met batches
-// can't itself eat the time budget before rendering even starts.
 const MEETING_CAP = 4;
 
 const MEETING_SYSTEM_PROMPT = `You are the joint voice of Aliantte (research), Pin Laden (design),
@@ -64,6 +63,9 @@ export async function GET(req: NextRequest) {
   await ensureSchema();
   const anthropic = new Anthropic({ apiKey });
 
+  const renderCap = await getNumberSetting("studio_render_cap", DEFAULT_RENDER_CAP, 1, 8);
+  const resolution = await getNumberSetting("studio_resolution", DEFAULT_RESOLUTION, 768, 2048);
+
   try {
     // --- Phase 1: run the sync meeting for EVERY batch still waiting on one ---
     const { rows: pendingBatches } = await sql<{ batch_id: string }>`
@@ -107,43 +109,54 @@ export async function GET(req: NextRequest) {
       JOIN meeting_notes m ON m.batch_id = i.batch_id
       WHERE i.status = 'new'
       ORDER BY i.created_at ASC
-      LIMIT ${RENDER_CAP}`;
+      LIMIT ${renderCap}`;
 
     let rendered = 0;
+    let failed = 0;
     const token = process.env.POLLINATIONS_TOKEN;
 
     for (const idea of renderCandidates) {
-      const prompt = buildImagePrompt(idea);
-      const seed = Math.floor(Math.random() * 1_000_000);
-      const params = new URLSearchParams({
-        width: "1536",
-        height: "1536",
-        seed: String(seed),
-        nologo: "true",
-        ...(token ? { token } : {}),
-      });
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params}`;
+      try {
+        const prompt = buildImagePrompt(idea);
+        const seed = Math.floor(Math.random() * 1_000_000);
+        const params = new URLSearchParams({
+          width: String(resolution),
+          height: String(resolution),
+          seed: String(seed),
+          nologo: "true",
+          ...(token ? { token } : {}),
+        });
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?${params}`;
 
-      const res = await fetch(imageUrl);
-      if (!res.ok) continue;
-      const bytes = await res.arrayBuffer();
+        const res = await fetch(imageUrl);
+        if (!res.ok) {
+          failed++;
+          continue;
+        }
+        const bytes = await res.arrayBuffer();
 
-      const blob = await put(`designs/idea-${idea.id}.png`, Buffer.from(bytes), {
-        access: "public",
-        contentType: "image/png",
-      });
+        const blob = await put(`designs/idea-${idea.id}.png`, Buffer.from(bytes), {
+          access: "public",
+          contentType: "image/png",
+        });
 
-      await sql`INSERT INTO assets (idea_id, type, url) VALUES (${idea.id}, 'design', ${blob.url})`;
-      await sql`UPDATE ideas SET status = 'image-ready' WHERE id = ${idea.id}`;
-      rendered++;
+        await sql`INSERT INTO assets (idea_id, type, url) VALUES (${idea.id}, 'design', ${blob.url})`;
+        await sql`UPDATE ideas SET status = 'image-ready' WHERE id = ${idea.id}`;
+        rendered++;
+      } catch (err) {
+        console.error(`studio failed on idea ${idea.id}`, err);
+        failed++;
+      }
     }
+
+    await sql`INSERT INTO run_metrics (employee, rendered, failed) VALUES ('Pin Laden', ${rendered}, ${failed})`;
 
     await logReport(
       "Pin Laden",
-      `${rendered} designs rendered, ${meetingsRun} batch sync${meetingsRun === 1 ? "" : "s"} run (${flaggedTotal} flagged)`
+      `${rendered} designs rendered${failed > 0 ? `, ${failed} failed` : ""}, ${meetingsRun} batch sync${meetingsRun === 1 ? "" : "s"} run (${flaggedTotal} flagged)`
     );
 
-    return NextResponse.json({ ok: true, meetingsRun, rendered, flaggedTotal });
+    return NextResponse.json({ ok: true, meetingsRun, rendered, failed, flaggedTotal, renderCap, resolution });
   } catch (err) {
     console.error("studio cron failed", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });

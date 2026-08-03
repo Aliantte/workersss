@@ -5,6 +5,8 @@ import NavTabs from "@/components/NavTabs";
 import type { TeamMeeting } from "@/lib/types";
 import styles from "./meeting.module.css";
 
+type Setting = { key: string; value: string; reason: string | null; updated_at: string };
+
 function timeAgo(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
@@ -17,6 +19,7 @@ function timeAgo(iso: string): string {
 
 export default function MeetingPage() {
   const [meetings, setMeetings] = useState<TeamMeeting[]>([]);
+  const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,7 +28,10 @@ export default function MeetingPage() {
       try {
         const res = await fetch("/api/meeting", { cache: "no-store" });
         const data = await res.json();
-        if (!cancelled) setMeetings(data.meetings ?? []);
+        if (!cancelled) {
+          setMeetings(data.meetings ?? []);
+          setSettings(data.settings ?? []);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -42,8 +48,22 @@ export default function MeetingPage() {
       <h1 className={styles.title}>Team Meeting</h1>
       <p className={styles.subtitle}>
         The whole crew, both business lines, checking in on how things are actually going —
-        grounded in real recent activity, not filler.
+        grounded in real recent activity. Adjustments below are real, bounded changes computed
+        from real data — never invented by the model.
       </p>
+
+      {settings.length > 0 && (
+        <div className={styles.settingsPanel}>
+          <h3 className={styles.sectionHeading}>Current settings</h3>
+          {settings.map((s) => (
+            <div key={s.key} className={styles.settingRow}>
+              <span className={styles.settingKey}>{s.key}</span>
+              <span className={styles.settingValue}>{s.value}</span>
+              {s.reason && <span className={styles.settingReason}>{s.reason}</span>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {!loading && meetings.length === 0 && (
         <p className={styles.empty}>No meetings held yet — check back after the next one.</p>
@@ -57,6 +77,12 @@ export default function MeetingPage() {
             <p className={styles.text}>{m.discussion}</p>
             <h3 className={styles.sectionHeading}>Suggestions for you</h3>
             <p className={styles.text}>{m.suggestions}</p>
+            {m.adjustments && m.adjustments !== "No adjustments this cycle." && (
+              <>
+                <h3 className={styles.sectionHeading}>Adjustments made this cycle</h3>
+                <p className={styles.text}>{m.adjustments}</p>
+              </>
+            )}
           </div>
         ))}
       </div>

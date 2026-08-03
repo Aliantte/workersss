@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
 
   await ensureSchema();
 
-  const category = pickCategory();
+  const category = await pickCategory();
   const batchId = `batch_${Date.now()}`;
   const anthropic = new Anthropic({ apiKey });
 

@@ -4,7 +4,8 @@ export type SocialNiche =
   | "productivity_mindset"
   | "humor_relatable"
   | "home_lifestyle"
-  | "finance_tips";
+  | "finance_tips"
+  | "twitch_clip_roundup";
 
 export const NICHE_LABEL: Record<SocialNiche, string> = {
   motivational_quotes: "Motivational quotes",
@@ -13,6 +14,7 @@ export const NICHE_LABEL: Record<SocialNiche, string> = {
   humor_relatable: "Humor / relatable",
   home_lifestyle: "Home & lifestyle",
   finance_tips: "Finance tips",
+  twitch_clip_roundup: "Twitch clip roundup",
 };
 
 const NICHES: SocialNiche[] = [
@@ -22,6 +24,7 @@ const NICHES: SocialNiche[] = [
   "humor_relatable",
   "home_lifestyle",
   "finance_tips",
+  "twitch_clip_roundup",
 ];
 
 export function pickNiche(): SocialNiche {

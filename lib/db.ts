@@ -101,6 +101,11 @@ export function ensureSchema(): Promise<void> {
         reject_reason TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
+      // For niches sourced from a real external post (Twitch clips, etc) —
+      // lets Designer skip AI generation and Copywriter credit accurately.
+      await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS source_url TEXT`;
+      await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS thumbnail_url TEXT`;
+      await sql`ALTER TABLE posts ADD COLUMN IF NOT EXISTS source_credit TEXT`;
       await sql`CREATE TABLE IF NOT EXISTS post_assets (
         id SERIAL PRIMARY KEY,
         post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
@@ -122,6 +127,28 @@ export function ensureSchema(): Promise<void> {
         id SERIAL PRIMARY KEY,
         discussion TEXT NOT NULL,
         suggestions TEXT NOT NULL,
+        adjustments TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`ALTER TABLE team_meetings ADD COLUMN IF NOT EXISTS adjustments TEXT`;
+
+      // --- Self-tuning settings — the crew's adjustable knobs, plus a log of
+      // what changed and why. Boardroom is the only thing that writes here,
+      // and only within hard-coded bounds — see lib/settings.ts.
+      await sql`CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        reason TEXT,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+
+      // Per-run outcome counts, used to measure real failure rates rather
+      // than guessing from summary text.
+      await sql`CREATE TABLE IF NOT EXISTS run_metrics (
+        id SERIAL PRIMARY KEY,
+        employee TEXT NOT NULL,
+        rendered INTEGER NOT NULL DEFAULT 0,
+        failed INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
     })();

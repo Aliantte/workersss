@@ -79,6 +79,9 @@ export type Post = {
   style: string;
   status: PostStatus;
   reject_reason: string | null;
+  source_url: string | null;
+  thumbnail_url: string | null;
+  source_credit: string | null;
   created_at: string;
 };
 
@@ -118,5 +121,6 @@ export type TeamMeeting = {
   id: number;
   discussion: string;
   suggestions: string;
+  adjustments: string | null;
   created_at: string;
 };
