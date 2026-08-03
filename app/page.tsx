@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import NavTabs from "@/components/NavTabs";
 import PixelSprite from "@/components/PixelSprite";
+import ZoneProps from "@/components/ZoneProps";
 import { SPRITES } from "@/lib/spritePalettes";
 import { secondsUntilNextCycle, formatCountdown } from "@/lib/nextRun";
 import type { Idea, Report } from "@/lib/types";
@@ -49,9 +50,9 @@ const ZONES: {
   { key: "studio", name: "Pin Laden", role: "STUDIO", color: "var(--neon-purple)", textColor: "#170428", href: "/crew/studio" },
   { key: "editor", name: "Ally Al", role: "EDITOR", color: "var(--neon-cyan)", textColor: "#00222b", href: "/crew/editor" },
   { key: "packager", name: "Boxley", role: "PACKAGING", color: "var(--neon-pink)", textColor: "#2b0016", href: "/crew/packager" },
-  { key: "scout", name: "Scout", role: "SOCIAL RESEARCH", color: "#ff8a3d", textColor: "#241300", href: "/crew/scout" },
-  { key: "designer", name: "Designer", role: "SOCIAL STUDIO", color: "#ff6bcb", textColor: "#2b0022", href: "/crew/designer" },
-  { key: "copywriter", name: "Copywriter", role: "SOCIAL COPY", color: "#2dd4bf", textColor: "#00201c", href: "/crew/copywriter" },
+  { key: "scout", name: "Aj", role: "SOCIAL RESEARCH", color: "#ff8a3d", textColor: "#241300", href: "/crew/scout" },
+  { key: "designer", name: "Al Jr.", role: "SOCIAL STUDIO", color: "#ff6bcb", textColor: "#2b0022", href: "/crew/designer" },
+  { key: "copywriter", name: "Katastrophik", role: "SOCIAL COPY", color: "#2dd4bf", textColor: "#00201c", href: "/crew/copywriter" },
 ];
 
 function rand(min: number, max: number) {
@@ -67,7 +68,7 @@ export default function Home() {
   const zoneRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
 
   const [botPos, setBotPos] = useState<Record<string, { left: string; top: string }>>(
-    Object.fromEntries(ZONES.map((z) => [z.key, { left: "50%", top: "55%" }]))
+    Object.fromEntries(ZONES.map((z) => [z.key, { left: "50%", top: "30%" }]))
   );
   const [flipped, setFlipped] = useState<Record<string, boolean>>({});
 
@@ -123,7 +124,7 @@ export default function Home() {
           const prevLeftStr = prev[zone.key]?.left ?? "50%";
           const prevLeft = parseFloat(prevLeftStr);
           setFlipped((f) => ({ ...f, [zone.key]: newLeft < prevLeft }));
-          return { ...prev, [zone.key]: { left: `${newLeft}%`, top: `${rand(50, 70)}%` } };
+          return { ...prev, [zone.key]: { left: `${newLeft}%`, top: `${rand(22, 38)}%` } };
         });
       }
       return setInterval(wander, 2600 + i * 350 + Math.random() * 1200);
@@ -178,9 +179,17 @@ export default function Home() {
     [data]
   );
 
+  const EMPLOYEE_DISPLAY: Record<string, string> = {
+    Scout: "AJ",
+    Designer: "AL JR.",
+    Copywriter: "KATASTROPHIK",
+  };
+
   const tickerText =
     data.reports.length > 0
-      ? data.reports.map((r) => `${r.employee.toUpperCase()} :: ${r.summary}`).join("     ·     ")
+      ? data.reports
+          .map((r) => `${EMPLOYEE_DISPLAY[r.employee] ?? r.employee.toUpperCase()} :: ${r.summary}`)
+          .join("     ·     ")
       : "SYSTEM :: waiting on the first cycle to run…";
 
   return (
@@ -240,6 +249,7 @@ export default function Home() {
                 <small>{zone.role}</small>
               </div>
               {count !== null && <span className={styles.zoneCount}>{count}</span>}
+              <ZoneProps zoneKey={zone.key} accentColor={zone.color} />
               <div
                 className={styles.spriteSlot}
                 style={{ left: botPos[zone.key]?.left, top: botPos[zone.key]?.top }}

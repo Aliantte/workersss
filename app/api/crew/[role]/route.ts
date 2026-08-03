@@ -10,9 +10,9 @@ const ROLE_MAP: Record<string, { employee: Report["employee"]; label: string; ti
   studio: { employee: "Pin Laden", label: "Studio", title: "Pin Laden" },
   editor: { employee: "Ally Al", label: "Editor", title: "Ally Al" },
   packager: { employee: "Packager", label: "Packaging Bay", title: "Boxley" },
-  scout: { employee: "Scout", label: "Social Research", title: "Scout" },
-  designer: { employee: "Designer", label: "Social Studio", title: "Designer" },
-  copywriter: { employee: "Copywriter", label: "Social Copy", title: "Copywriter" },
+  scout: { employee: "Scout", label: "Social Research", title: "Aj" },
+  designer: { employee: "Designer", label: "Social Studio", title: "Al Jr." },
+  copywriter: { employee: "Copywriter", label: "Social Copy", title: "Katastrophik" },
 };
 
 type UnifiedItem = {
