@@ -1,12 +1,36 @@
 {
   "crons": [
-    { "path": "/api/cron/research", "schedule": "0 */2 * * *" },
-    { "path": "/api/cron/studio", "schedule": "6 */2 * * *" },
-    { "path": "/api/cron/editor", "schedule": "13 */2 * * *" },
-    { "path": "/api/cron/packager", "schedule": "17 */2 * * *" },
-    { "path": "/api/cron/alvin", "schedule": "19 */2 * * *" },
-    { "path": "/api/cron/scout", "schedule": "30 */2 * * *" },
-    { "path": "/api/cron/designer", "schedule": "36 */2 * * *" },
-    { "path": "/api/cron/copywriter", "schedule": "50 */2 * * *" }
+    {
+      "path": "/api/cron/research",
+      "schedule": "0 */2 * * *"
+    },
+    {
+      "path": "/api/cron/studio",
+      "schedule": "6 */2 * * *"
+    },
+    {
+      "path": "/api/cron/editor",
+      "schedule": "13 */2 * * *"
+    },
+    {
+      "path": "/api/cron/packager",
+      "schedule": "17 */2 * * *"
+    },
+    {
+      "path": "/api/cron/alvin",
+      "schedule": "19 */2 * * *"
+    },
+    {
+      "path": "/api/cron/scout",
+      "schedule": "30 */2 * * *"
+    },
+    {
+      "path": "/api/cron/designer",
+      "schedule": "36 */2 * * *"
+    },
+    {
+      "path": "/api/cron/copywriter",
+      "schedule": "50 */2 * * *"
+    }
   ]
 }
