@@ -5,10 +5,14 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   await ensureSchema();
-  const { ideaId, reason } = await req.json();
+  const { ideaId, reason, kind } = await req.json();
   if (!ideaId) {
     return NextResponse.json({ error: "Missing ideaId" }, { status: 400 });
   }
-  await sql`UPDATE ideas SET status = 'archived', reject_reason = ${reason || null} WHERE id = ${ideaId}`;
+  if (kind === "social") {
+    await sql`UPDATE posts SET status = 'archived', reject_reason = ${reason || null} WHERE id = ${ideaId}`;
+  } else {
+    await sql`UPDATE ideas SET status = 'archived', reject_reason = ${reason || null} WHERE id = ${ideaId}`;
+  }
   return NextResponse.json({ ok: true });
 }

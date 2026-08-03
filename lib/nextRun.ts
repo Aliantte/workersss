@@ -1,8 +1,5 @@
-// 7am–9pm EDT (UTC-4), every 2 hours — kept sorted ascending, matches vercel.json's
-// research cron. If/when EDT ends (~November) and the offset shifts back to EST
-// (UTC-5), these UTC hours will need bumping by 1 to keep landing at the same
-// local wall-clock times.
-const RESEARCH_HOURS = [1, 11, 13, 15, 17, 19, 21, 23];
+// Every 2 hours, full 24h coverage — matches vercel.json's "0 */2 * * *" for research.
+const RESEARCH_HOURS = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
 
 /** Seconds until the next research cycle kicks off, computed in UTC to match the cron schedule. */
 export function secondsUntilNextCycle(): number {

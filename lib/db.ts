@@ -83,6 +83,35 @@ export function ensureSchema(): Promise<void> {
       )`;
       await sql`CREATE INDEX IF NOT EXISTS ideas_status_idx ON ideas (status)`;
       await sql`CREATE INDEX IF NOT EXISTS ideas_batch_idx ON ideas (batch_id)`;
+
+      // --- Social content factory — separate tables, same database, so it's
+      // fully distinct from the Etsy shop's data (no shared status pipeline,
+      // no shared category system) while costing nothing extra to host.
+      await sql`CREATE TABLE IF NOT EXISTS posts (
+        id SERIAL PRIMARY KEY,
+        batch_id TEXT NOT NULL,
+        niche TEXT NOT NULL,
+        hook TEXT NOT NULL,
+        style TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'new',
+        reject_reason TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE TABLE IF NOT EXISTS post_assets (
+        id SERIAL PRIMARY KEY,
+        post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        platform TEXT NOT NULL,
+        url TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (post_id, platform)
+      )`;
+      await sql`CREATE TABLE IF NOT EXISTS post_copy (
+        post_id INTEGER PRIMARY KEY REFERENCES posts(id) ON DELETE CASCADE,
+        caption TEXT NOT NULL,
+        hashtags TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
+      await sql`CREATE INDEX IF NOT EXISTS posts_status_idx ON posts (status)`;
     })();
   }
   return schemaReady;

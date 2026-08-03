@@ -3,7 +3,8 @@ export type IdeaCategory =
   | "mug_tumbler_wrap"
   | "phone_wallpaper"
   | "digital_planner"
-  | "sticker_sheet";
+  | "sticker_sheet"
+  | "coloring_page";
 
 export type IdeaStatus =
   | "new"
@@ -44,7 +45,7 @@ export type ListingCopy = {
 
 export type Report = {
   id: number;
-  employee: "Aliantte" | "Pin Laden" | "Ally Al" | "Packager" | "Alvin";
+  employee: "Aliantte" | "Pin Laden" | "Ally Al" | "Packager" | "Alvin" | "Scout" | "Designer" | "Copywriter";
   summary: string;
   created_at: string;
 };
@@ -63,10 +64,48 @@ export type IdeaWithBundle = Idea & {
   description: string | null;
 };
 
+// --- Social content factory ---
+
+export type PostStatus = "new" | "image-ready" | "pending-review" | "approved" | "archived";
+
+export type Post = {
+  id: number;
+  batch_id: string;
+  niche: string;
+  hook: string;
+  style: string;
+  status: PostStatus;
+  reject_reason: string | null;
+  created_at: string;
+};
+
+export type PostAsset = {
+  id: number;
+  post_id: number;
+  platform: "instagram" | "tiktok";
+  url: string;
+  created_at: string;
+};
+
+export type PostCopy = {
+  post_id: number;
+  caption: string;
+  hashtags: string;
+  created_at: string;
+};
+
+export type PostWithBundle = Post & {
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  caption: string | null;
+  hashtags: string | null;
+};
+
 export const CATEGORY_LABEL: Record<IdeaCategory, string> = {
   wall_art: "Wall art",
   mug_tumbler_wrap: "Mug/tumbler wrap",
   phone_wallpaper: "Phone wallpaper",
   digital_planner: "Digital planner",
   sticker_sheet: "Sticker sheet",
+  coloring_page: "Coloring page",
 };

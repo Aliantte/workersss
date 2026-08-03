@@ -15,7 +15,7 @@ wandering sprites, a supervisor doing rounds, and a live activity ticker.
 | Boardroom | **Big Al** (you) | Approve or reject each packaged idea at `/review` — approved items land in `/library`, rejected ones are archived with a reason, nothing is deleted |
 | — | **Alvin** | Roams all five rooms, logs a deterministic end-of-cycle summary (no LLM call — it's just counts) that feeds the ticker |
 
-## Pipeline flow (one cycle, every 2 hours, 7am-9pm EDT)
+## Pipeline flow (one cycle, every 2 hours, full 24h coverage)
 
 ```
 :00  Aliantte generates a new batch of ideas          → status: new
@@ -27,7 +27,7 @@ wandering sprites, a supervisor doing rounds, and a live activity ticker.
  —   You approve/reject at /review                     → status: approved / archived
 ```
 
-That's 8 cycles/day (7, 9, 11, 13, 15, 17, 19, 21 EDT), roughly $3-4/month in Anthropic spend at current pricing. Cron times in `vercel.json` are fixed UTC — they'll drift by an hour relative to EDT/EST when daylight saving changes, since Vercel doesn't auto-adjust for that.
+That's 12 cycles/day, running around the clock rather than just daytime hours. Real observed cost has been well under $1 total across a full day of heavy manual testing, so this is a conservative step up — a hard monthly spend limit set in the Anthropic console is the actual safety net, not the cadence itself.
 
 Each stage is its own Vercel Cron job (see `vercel.json`), staggered so there's real work
 waiting when the next one runs.
@@ -88,3 +88,23 @@ mockup images. The Packager route is where that logic would slot in later.
 
 `status` moves through: `new` → (`flagged-skip` or) `image-ready` → `ready-to-package` →
 `pending-review` → `approved` or `archived`.
+
+## Social Content Factory
+
+A second, fully separate business line living in the same project and database (no extra
+infrastructure cost) — generates Instagram + TikTok content instead of Etsy products.
+
+| Room | Who | Job |
+|---|---|---|
+| — | **Scout** | Every cycle, generates 5 post ideas across a rotating niche (motivational quotes, wellness, productivity, humor, home/lifestyle, finance tips) |
+| — | **Designer** | Renders BOTH an Instagram-format and a TikTok-format image per post, in a randomized visual style per post |
+| — | **Copywriter** | Writes the caption + hashtags, sends straight to review (no separate bundler stage — a post has nothing extra to verify) |
+
+Same review-gate philosophy as the shop: nothing posts anywhere automatically. Actually publishing
+to Instagram/TikTok would need real platform API integration — a separate, bigger lift, not part
+of this. What this produces is a steady stream of ready-to-post assets sitting in `/review`, then
+`/library` once approved.
+
+Review and Library pages show this as a clearly separate section from the Etsy shop — same pages,
+divided, not merged into one list.
+
