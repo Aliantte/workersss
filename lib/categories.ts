@@ -6,6 +6,7 @@ const CATEGORIES: IdeaCategory[] = [
   "phone_wallpaper",
   "digital_planner",
   "sticker_sheet",
+  "coloring_page",
 ];
 
 export function pickCategory(): IdeaCategory {
