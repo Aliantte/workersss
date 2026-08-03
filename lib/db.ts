@@ -151,6 +151,16 @@ export function ensureSchema(): Promise<void> {
         failed INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
+
+      // --- Product mockups — composited from real reference photos, not AI-generated ---
+      await sql`CREATE TABLE IF NOT EXISTS mockups (
+        id SERIAL PRIMARY KEY,
+        idea_id INTEGER NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+        template_name TEXT NOT NULL,
+        url TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE (idea_id, template_name)
+      )`;
     })();
   }
   return schemaReady;

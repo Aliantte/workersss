@@ -2,6 +2,7 @@
   "crons": [
     { "path": "/api/cron/research", "schedule": "0 */2 * * *" },
     { "path": "/api/cron/studio", "schedule": "6 */2 * * *" },
+    { "path": "/api/cron/mockup", "schedule": "10 */2 * * *" },
     { "path": "/api/cron/editor", "schedule": "13 */2 * * *" },
     { "path": "/api/cron/packager", "schedule": "17 */2 * * *" },
     { "path": "/api/cron/alvin", "schedule": "19 */2 * * *" },

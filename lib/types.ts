@@ -124,3 +124,16 @@ export type TeamMeeting = {
   adjustments: string | null;
   created_at: string;
 };
+
+export type Mockup = {
+  id: number;
+  idea_id: number;
+  template_name: string;
+  url: string;
+  created_at: string;
+};
+
+export type MockupWithIdea = Mockup & {
+  concept: string;
+  category: IdeaCategory;
+};

@@ -47,7 +47,24 @@ function buildImagePrompt(idea: Idea): string {
     return `${label}: ${idea.concept}. Clean 2D game asset — pixel art or flat vector game-UI style, whichever the concept calls for. Isolated subject on a plain or transparent-friendly background, crisp readable edges at small sizes, game-ready, no photorealism, no text or watermark. ${QUALITY_SUFFIX}`;
   }
 
+  if (idea.category === "mug_tumbler_wrap") {
+    return `${label}: ${idea.concept}. Designed as a seamless wrap for a 20oz tumbler — full-bleed, edge-to-edge composition with NO border and NO empty margin, since this stretches around a cylinder; the left and right edges should feel like they could connect smoothly, not an isolated centered graphic on blank space. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, vibrant professional color, no text or watermark. ${QUALITY_SUFFIX}`;
+  }
+
   return `${label}: ${idea.concept}. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, sharp clean linework, vibrant professional color, commercial print-ready quality, no text or watermark. ${QUALITY_SUFFIX}`;
+}
+
+// A tumbler wrap for a 20oz cup has a real, fixed print spec — 8.5in x 9in —
+// not a square. Height is the longer edge; width is scaled to match that
+// real-world ratio so the design actually fits the product, not just looks
+// nice as a flat square.
+function dimensionsFor(category: string, resolution: number): { width: number; height: number } {
+  if (category === "mug_tumbler_wrap") {
+    const height = resolution;
+    const width = Math.round(resolution * (8.5 / 9));
+    return { width, height };
+  }
+  return { width: resolution, height: resolution };
 }
 
 export async function GET(req: NextRequest) {
@@ -118,10 +135,13 @@ export async function GET(req: NextRequest) {
     for (const idea of renderCandidates) {
       try {
         const prompt = buildImagePrompt(idea);
+        const { width, height } = dimensionsFor(idea.category, resolution);
         const seed = Math.floor(Math.random() * 1_000_000);
         const params = new URLSearchParams({
-          width: String(resolution),
-          height: String(resolution),
+          width: String(width),
+          height: String(height),
+          model: "flux",
+          enhance: "true",
           seed: String(seed),
           nologo: "true",
           ...(token ? { token } : {}),
