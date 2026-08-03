@@ -3,7 +3,8 @@ export type IdeaCategory =
   | "mug_tumbler_wrap"
   | "phone_wallpaper"
   | "digital_planner"
-  | "sticker_sheet";
+  | "sticker_sheet"
+  | "coloring_page";
 
 export type IdeaStatus =
   | "new"
@@ -69,4 +70,5 @@ export const CATEGORY_LABEL: Record<IdeaCategory, string> = {
   phone_wallpaper: "Phone wallpaper",
   digital_planner: "Digital planner",
   sticker_sheet: "Sticker sheet",
+  coloring_page: "Coloring page",
 };
