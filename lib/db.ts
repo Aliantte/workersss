@@ -55,6 +55,10 @@ export function ensureSchema(): Promise<void> {
         reject_reason TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
+      // Added after the table already existed in production — ALTER with
+      // IF NOT EXISTS so this stays safe to re-run on a fresh install too.
+      await sql`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS suggested_price NUMERIC`;
+      await sql`ALTER TABLE ideas ADD COLUMN IF NOT EXISTS price_range TEXT`;
       await sql`CREATE TABLE IF NOT EXISTS assets (
         id SERIAL PRIMARY KEY,
         idea_id INTEGER NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
@@ -112,6 +116,14 @@ export function ensureSchema(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )`;
       await sql`CREATE INDEX IF NOT EXISTS posts_status_idx ON posts (status)`;
+
+      // --- Team meeting — a recurring roundtable across BOTH business lines ---
+      await sql`CREATE TABLE IF NOT EXISTS team_meetings (
+        id SERIAL PRIMARY KEY,
+        discussion TEXT NOT NULL,
+        suggestions TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )`;
     })();
   }
   return schemaReady;

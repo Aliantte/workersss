@@ -131,6 +131,19 @@
   margin: 0 0 8px;
 }
 
+.price {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--hud-green);
+  font-weight: 600;
+  margin: 2px 0 6px;
+}
+
+.priceRange {
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
 .desc {
   font-size: 12px;
   color: var(--text-dim);

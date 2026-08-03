@@ -8,6 +8,7 @@ const TABS = [
   { href: "/", label: "The Trap" },
   { href: "/review", label: "Review Queue" },
   { href: "/library", label: "Library" },
+  { href: "/meeting", label: "Team Meeting" },
 ];
 
 export default function NavTabs() {

@@ -54,6 +54,12 @@ export default function LibraryPage() {
             <div className={styles.body}>
               <span className={styles.category}>{CATEGORY_LABEL[item.category]}</span>
               <h3 className={styles.itemTitle}>{item.title || item.concept}</h3>
+              {item.suggested_price != null && (
+                <p className={styles.price}>
+                  Suggested: ${Number(item.suggested_price).toFixed(2)}
+                  {item.price_range && <span className={styles.priceRange}> (market: {item.price_range})</span>}
+                </p>
+              )}
               <p className={styles.tags}>{item.tags}</p>
               <p className={styles.desc}>{item.description}</p>
             </div>

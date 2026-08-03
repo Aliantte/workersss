@@ -10,13 +10,11 @@ export const dynamic = "force-dynamic";
 
 export const maxDuration = 280;
 
-// Cap on how many images get rendered in a single invocation, regardless of
-// how many are eligible. Keeps each run comfortably inside maxDuration and
-// naturally drains any backlog over multiple cycles instead of risking a
-// timeout by trying to clear everything at once. Lowered from 10 after a real
-// run hit the 280s ceiling and got killed mid-work (FUNCTION_INVOCATION_TIMEOUT) —
-// Pollinations response time varies enough that 10 images at 1536px wasn't safe.
-const RENDER_CAP = 6;
+// Resolution went up (1280 -> 1536), so this cap came down (6 -> 4) to
+// compensate — the actual budget is roughly render_cap * pixel_count, and
+// this keeps that number close to what the last known-good run (6 @ 1280)
+// actually cleared within 280s, rather than just cranking resolution up blind.
+const RENDER_CAP = 4;
 
 // Bounds the sync-meeting phase too, so a large backlog of un-met batches
 // can't itself eat the time budget before rendering even starts.
@@ -36,12 +34,21 @@ function buildMeetingPrompt(ideas: Idea[]): string {
   return `Here's the new batch:\n${list}\n\nRespond with JSON: {"notes": "2-3 sentence summary of the batch and any concerns", "flag_ids": [array of idea ids to skip this cycle, can be empty]}`;
 }
 
+const QUALITY_SUFFIX =
+  "Professional, polished illustration quality — avoid the generic over-smoothed, mushy-detail look common in AI art, avoid warped or nonsensical small details, coherent clean composition.";
+
 function buildImagePrompt(idea: Idea): string {
   const label = CATEGORY_LABEL[idea.category];
+
   if (idea.category === "coloring_page") {
-    return `${label}: ${idea.concept}. Black and white line art ONLY — no color, no shading, no greyscale fill. Bold, clean, evenly-weighted outlines suitable for printing and coloring in. Anime/manga style, Western cartoon style, or nature/botanical subject — whichever the concept calls for. High resolution, crisp lines, white background, no text or watermark.`;
+    return `${label}: ${idea.concept}. Black and white line art ONLY — no color, no shading, no greyscale fill. Bold, clean, evenly-weighted outlines suitable for printing and coloring in. Anime/manga style, Western cartoon style, or nature/botanical subject — whichever the concept calls for. High resolution, crisp lines, white background, no text or watermark. ${QUALITY_SUFFIX}`;
   }
-  return `${label}: ${idea.concept}. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, sharp clean linework, vibrant professional color, commercial print-ready quality, no text or watermark.`;
+
+  if (idea.category === "game_asset_pack") {
+    return `${label}: ${idea.concept}. Clean 2D game asset — pixel art or flat vector game-UI style, whichever the concept calls for. Isolated subject on a plain or transparent-friendly background, crisp readable edges at small sizes, game-ready, no photorealism, no text or watermark. ${QUALITY_SUFFIX}`;
+  }
+
+  return `${label}: ${idea.concept}. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, sharp clean linework, vibrant professional color, commercial print-ready quality, no text or watermark. ${QUALITY_SUFFIX}`;
 }
 
 export async function GET(req: NextRequest) {
@@ -59,8 +66,6 @@ export async function GET(req: NextRequest) {
 
   try {
     // --- Phase 1: run the sync meeting for EVERY batch still waiting on one ---
-    // Cheap, fast text-only calls — no reason to let these fall behind, so all
-    // pending batches get processed in one run, oldest first.
     const { rows: pendingBatches } = await sql<{ batch_id: string }>`
       SELECT DISTINCT i.batch_id FROM ideas i
       WHERE i.status = 'new'
@@ -97,9 +102,6 @@ export async function GET(req: NextRequest) {
     }
 
     // --- Phase 2: render a bounded pool of images across ALL met batches ---
-    // Not tied to whichever batch just had its meeting — pulls the oldest
-    // eligible ideas across everything waiting, so a backlog drains evenly
-    // instead of newer batches jumping the queue.
     const { rows: renderCandidates } = await sql<Idea>`
       SELECT i.* FROM ideas i
       JOIN meeting_notes m ON m.batch_id = i.batch_id
@@ -114,8 +116,8 @@ export async function GET(req: NextRequest) {
       const prompt = buildImagePrompt(idea);
       const seed = Math.floor(Math.random() * 1_000_000);
       const params = new URLSearchParams({
-        width: "1280",
-        height: "1280",
+        width: "1536",
+        height: "1536",
         seed: String(seed),
         nologo: "true",
         ...(token ? { token } : {}),

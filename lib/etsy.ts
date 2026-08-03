@@ -7,6 +7,14 @@
 export type EtsyGrounding = {
   titles: string[];
   totalCount: number;
+  avgPrice: number | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+};
+
+type EtsyListing = {
+  title?: string;
+  price?: { amount?: number; divisor?: number; currency_code?: string };
 };
 
 export async function searchEtsyListings(keywords: string, limit = 10): Promise<EtsyGrounding | null> {
@@ -28,13 +36,25 @@ export async function searchEtsyListings(keywords: string, limit = 10): Promise<
     if (!res.ok) return null;
 
     const data = await res.json();
-    const titles: string[] = (data.results || [])
-      .map((r: { title?: string }) => r.title)
-      .filter(Boolean);
+    const results: EtsyListing[] = data.results || [];
 
+    const titles: string[] = results.map((r) => r.title).filter(Boolean) as string[];
     if (titles.length === 0) return null;
 
-    return { titles, totalCount: data.count ?? titles.length };
+    const prices: number[] = results
+      .map((r) => {
+        const amount = r.price?.amount;
+        const divisor = r.price?.divisor;
+        if (typeof amount !== "number" || typeof divisor !== "number" || divisor === 0) return null;
+        return amount / divisor;
+      })
+      .filter((p): p is number => p !== null);
+
+    const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : null;
+    const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+    const maxPrice = prices.length > 0 ? Math.max(...prices) : null;
+
+    return { titles, totalCount: data.count ?? titles.length, avgPrice, minPrice, maxPrice };
   } catch {
     return null;
   }

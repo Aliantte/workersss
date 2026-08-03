@@ -3,14 +3,24 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import NavTabs from "@/components/NavTabs";
-import { CATEGORY_LABEL, type Report } from "@/lib/types";
+import type { Report } from "@/lib/types";
 import styles from "./crew.module.css";
+
+type UnifiedItem = {
+  id: number;
+  category_label: string;
+  concept: string;
+  extra: string | null;
+  status: string | null;
+  url: string | null;
+  created_at: string;
+};
 
 type CrewData = {
   label: string;
   title: string;
   reports: Report[];
-  items: any[];
+  items: UnifiedItem[];
 };
 
 const EMPTY: CrewData = { label: "", title: "", reports: [], items: [] };
@@ -20,6 +30,9 @@ const ROLE_DESC: Record<string, string> = {
   studio: "Runs the sync meeting, then renders designs for whatever survives it.",
   editor: "Writes listing copy for every rendered design, does a QA pass.",
   packager: "Verifies design + copy both exist, sends the bundle up for review.",
+  scout: "Social post ideas across rotating niches.",
+  designer: "Renders both Instagram and TikTok format images per post.",
+  copywriter: "Writes the caption + hashtags, sends straight to review.",
 };
 
 function timeAgo(iso: string): string {
@@ -86,18 +99,14 @@ export default function CrewPage() {
           )}
           <div className={styles.itemList}>
             {data.items.map((item, i) => (
-              <div key={item.id ?? item.idea_id ?? i} className={styles.itemRow}>
-                {role === "studio" && item.url && (
+              <div key={item.id ?? i} className={styles.itemRow}>
+                {item.url && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.url} alt={item.concept} className={styles.itemThumb} />
                 )}
                 <div className={styles.itemBody}>
-                  <span className={styles.itemCategory}>
-                    {item.category ? CATEGORY_LABEL[item.category as keyof typeof CATEGORY_LABEL] : ""}
-                  </span>
-                  <p className={styles.itemConcept}>
-                    {role === "editor" ? item.title : item.concept}
-                  </p>
+                  <span className={styles.itemCategory}>{item.category_label}</span>
+                  <p className={styles.itemConcept}>{item.extra || item.concept}</p>
                   {item.status && <span className={styles.itemStatus}>{item.status}</span>}
                 </div>
               </div>

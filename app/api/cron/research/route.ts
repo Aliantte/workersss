@@ -4,7 +4,7 @@ import { sql, ensureSchema } from "@/lib/db";
 import { isAuthorizedCronRequest } from "@/lib/auth";
 import { logReport } from "@/lib/reports";
 import { pickCategory } from "@/lib/categories";
-import { searchEtsyListings } from "@/lib/etsy";
+import { searchEtsyListings, type EtsyGrounding } from "@/lib/etsy";
 import { CATEGORY_LABEL, type IdeaCategory } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -22,13 +22,18 @@ Etsy listings are provided, use them to spot actual gaps and patterns — never 
 directly, treat them as market signal, not a template. Respond with ONLY valid JSON, no prose, no
 markdown fences.`;
 
-function buildPrompt(category: IdeaCategory, grounding: { titles: string[]; totalCount: number } | null): string {
+function buildPrompt(category: IdeaCategory, grounding: EtsyGrounding | null): string {
   const label = CATEGORY_LABEL[category];
 
-  const groundingBlock = grounding
-    ? `\n\nReal current Etsy listings for "${label}" (${grounding.totalCount} active listings match this search):\n${grounding.titles.map((t) => `- ${t}`).join("\n")}\n\nUse this as real market signal — what's already saturated, what angles keep repeating, what's
-missing — rather than guessing blind.`
-    : "";
+  let groundingBlock = "";
+  if (grounding) {
+    const priceLine =
+      grounding.avgPrice != null
+        ? `\nComparable listings are priced roughly $${grounding.minPrice?.toFixed(2)}-$${grounding.maxPrice?.toFixed(2)}, averaging $${grounding.avgPrice.toFixed(2)}.`
+        : "";
+    groundingBlock = `\n\nReal current Etsy listings for "${label}" (${grounding.totalCount} active listings match this search):\n${grounding.titles.map((t) => `- ${t}`).join("\n")}${priceLine}\n\nUse this as real market signal — what's already saturated, what angles keep repeating, what's
+missing — rather than guessing blind.`;
+  }
 
   return `Generate 6 new digital-product ideas for an Etsy shop, all within the "${label}" category.
 Every idea must be anime-style, cartoon-style, or nature/botanical illustration (original art,
@@ -73,9 +78,15 @@ export async function GET(req: NextRequest) {
     const ideas: { concept: string; keywords: string; trend_rationale: string }[] =
       JSON.parse(cleaned);
 
+    const suggestedPrice = grounding?.avgPrice ?? null;
+    const priceRange =
+      grounding?.minPrice != null && grounding?.maxPrice != null
+        ? `$${grounding.minPrice.toFixed(2)}-$${grounding.maxPrice.toFixed(2)}`
+        : null;
+
     for (const idea of ideas) {
-      await sql`INSERT INTO ideas (batch_id, category, concept, keywords, trend_rationale, status)
-                VALUES (${batchId}, ${category}, ${idea.concept}, ${idea.keywords}, ${idea.trend_rationale}, 'new')`;
+      await sql`INSERT INTO ideas (batch_id, category, concept, keywords, trend_rationale, status, suggested_price, price_range)
+                VALUES (${batchId}, ${category}, ${idea.concept}, ${idea.keywords}, ${idea.trend_rationale}, 'new', ${suggestedPrice}, ${priceRange})`;
     }
 
     await logReport(
@@ -83,7 +94,7 @@ export async function GET(req: NextRequest) {
       `${ideas.length} ideas generated (${CATEGORY_LABEL[category]}${grounding ? `, grounded in ${grounding.totalCount} real Etsy listings` : ""}), batch ${batchId}`
     );
 
-    return NextResponse.json({ ok: true, batchId, category, count: ideas.length, grounded: !!grounding });
+    return NextResponse.json({ ok: true, batchId, category, count: ideas.length, grounded: !!grounding, suggestedPrice });
   } catch (err) {
     console.error("research cron failed", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });

@@ -1,23 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import NavTabs from "@/components/NavTabs";
+import PixelSprite from "@/components/PixelSprite";
+import { SPRITES } from "@/lib/spritePalettes";
 import { secondsUntilNextCycle, formatCountdown } from "@/lib/nextRun";
-import type { Idea, Report, MeetingNotes } from "@/lib/types";
+import type { Idea, Report } from "@/lib/types";
 import styles from "./page.module.css";
 
 type PipelineData = {
   queues: { studio: Idea[]; editor: Idea[]; packager: Idea[] };
+  socialQueueCounts: { designer: number; copywriter: number };
   reports: Report[];
-  latestMeetingNotes: MeetingNotes | null;
   counts: Record<string, number>;
 };
 
 const EMPTY_DATA: PipelineData = {
   queues: { studio: [], editor: [], packager: [] },
+  socialQueueCounts: { designer: 0, copywriter: 0 },
   reports: [],
-  latestMeetingNotes: null,
   counts: {},
 };
 
@@ -31,47 +33,59 @@ const ALVIN_PHRASES = [
   "making the rounds",
 ];
 
+type ZoneKey = "boss" | "research" | "studio" | "editor" | "packager" | "scout" | "designer" | "copywriter";
+
+const ZONES: {
+  key: ZoneKey;
+  name: string;
+  role: string;
+  color: string;
+  textColor: string;
+  href: string;
+  big?: boolean;
+}[] = [
+  { key: "boss", name: "Big Al", role: "BOSS", color: "var(--gold)", textColor: "#2a1400", href: "/review", big: true },
+  { key: "research", name: "Aliantte", role: "RESEARCH LAB", color: "var(--hud-green)", textColor: "#04160d", href: "/crew/research" },
+  { key: "studio", name: "Pin Laden", role: "STUDIO", color: "var(--neon-purple)", textColor: "#170428", href: "/crew/studio" },
+  { key: "editor", name: "Ally Al", role: "EDITOR", color: "var(--neon-cyan)", textColor: "#00222b", href: "/crew/editor" },
+  { key: "packager", name: "Boxley", role: "PACKAGING", color: "var(--neon-pink)", textColor: "#2b0016", href: "/crew/packager" },
+  { key: "scout", name: "Scout", role: "SOCIAL RESEARCH", color: "#ff8a3d", textColor: "#241300", href: "/crew/scout" },
+  { key: "designer", name: "Designer", role: "SOCIAL STUDIO", color: "#ff6bcb", textColor: "#2b0022", href: "/crew/designer" },
+  { key: "copywriter", name: "Copywriter", role: "SOCIAL COPY", color: "#2dd4bf", textColor: "#00201c", href: "/crew/copywriter" },
+];
+
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
-}
-
-function TodoPanel({ label, items }: { label: string; items: Idea[] }) {
-  return (
-    <div className={styles.todo}>
-      <span className={styles.todoCount}>{items.length}</span> {label}
-      {items.slice(0, 3).map((i) => (
-        <div key={i.id}>· {i.concept.slice(0, 28)}</div>
-      ))}
-    </div>
-  );
 }
 
 export default function Home() {
   const [data, setData] = useState<PipelineData>(EMPTY_DATA);
   const [countdown, setCountdown] = useState("--:--:--");
+  const [isDayShift, setIsDayShift] = useState<boolean | null>(null);
 
   const mapRef = useRef<HTMLDivElement>(null);
-  const roomRefs = {
-    boss: useRef<HTMLDivElement>(null),
-    research: useRef<HTMLDivElement>(null),
-    studio: useRef<HTMLDivElement>(null),
-    editor: useRef<HTMLDivElement>(null),
-    packager: useRef<HTMLDivElement>(null),
-  };
+  const zoneRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
 
-  const [botPos, setBotPos] = useState<Record<string, { left: string; top: string }>>({
-    boss: { left: "50%", top: "34%" },
-    research: { left: "45%", top: "38%" },
-    studio: { left: "55%", top: "60%" },
-    editor: { left: "48%", top: "35%" },
-    packager: { left: "50%", top: "55%" },
-  });
+  const [botPos, setBotPos] = useState<Record<string, { left: string; top: string }>>(
+    Object.fromEntries(ZONES.map((z) => [z.key, { left: "50%", top: "55%" }]))
+  );
+  const [flipped, setFlipped] = useState<Record<string, boolean>>({});
 
   const [alvinPos, setAlvinPos] = useState({ left: 0, top: 0 });
   const [alvinBubble, setAlvinBubble] = useState("");
   const [alvinVisible, setAlvinVisible] = useState(false);
 
-  // Poll pipeline data
+  // Day (7am-9pm) vs Night (9:01pm-6:59am) shift, based on the viewer's local time
+  useEffect(() => {
+    function computeShift() {
+      const hour = new Date().getHours();
+      setIsDayShift(hour >= 7 && hour < 21);
+    }
+    computeShift();
+    const id = setInterval(computeShift, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -80,7 +94,7 @@ export default function Home() {
         const json = await res.json();
         if (!cancelled) setData(json);
       } catch {
-        /* leave last-known data in place */
+        /* keep last-known data */
       }
     }
     load();
@@ -91,7 +105,6 @@ export default function Home() {
     };
   }, []);
 
-  // Countdown
   useEffect(() => {
     function tick() {
       setCountdown(formatCountdown(secondsUntilNextCycle()));
@@ -101,34 +114,29 @@ export default function Home() {
     return () => clearInterval(id);
   }, []);
 
-  // Bot wandering, one independent interval per station
+  // Each sprite wanders within its own zone card
   useEffect(() => {
-    const ranges: Record<string, { xr: [number, number]; yr: [number, number] }> = {
-      boss: { xr: [25, 75], yr: [22, 45] },
-      research: { xr: [15, 75], yr: [22, 55] },
-      studio: { xr: [15, 80], yr: [18, 55] },
-      editor: { xr: [20, 78], yr: [20, 45] },
-      packager: { xr: [20, 78], yr: [22, 50] },
-    };
-    const timers = Object.entries(ranges).map(([key, r], i) => {
+    const timers = ZONES.map((zone, i) => {
       function wander() {
-        setBotPos((prev) => ({
-          ...prev,
-          [key]: { left: `${rand(...r.xr)}%`, top: `${rand(...r.yr)}%` },
-        }));
+        setBotPos((prev) => {
+          const newLeft = rand(20, 75);
+          const prevLeftStr = prev[zone.key]?.left ?? "50%";
+          const prevLeft = parseFloat(prevLeftStr);
+          setFlipped((f) => ({ ...f, [zone.key]: newLeft < prevLeft }));
+          return { ...prev, [zone.key]: { left: `${newLeft}%`, top: `${rand(50, 70)}%` } };
+        });
       }
-      return setInterval(wander, 2600 + i * 400 + Math.random() * 1200);
+      return setInterval(wander, 2600 + i * 350 + Math.random() * 1200);
     });
     return () => timers.forEach(clearInterval);
   }, []);
 
-  // Alvin's rounds
+  // Alvin's rounds — measures real card positions, works regardless of grid vs stacked layout
   useEffect(() => {
-    const stationIds: (keyof typeof roomRefs)[] = ["boss", "research", "studio", "editor", "packager"];
     let idx = 0;
     let cancelled = false;
 
-    function centerOf(el: HTMLDivElement) {
+    function centerOf(el: HTMLAnchorElement) {
       const r = el.getBoundingClientRect();
       const c = mapRef.current!.getBoundingClientRect();
       return { x: r.left + r.width / 2 - c.left, y: r.top + r.height / 2 - c.top };
@@ -136,11 +144,8 @@ export default function Home() {
 
     function rounds() {
       if (cancelled) return;
-      if (typeof window !== "undefined" && window.innerWidth <= 640) {
-        setTimeout(rounds, 4200);
-        return;
-      }
-      const target = roomRefs[stationIds[idx]].current;
+      const key = ZONES[idx].key;
+      const target = zoneRefs.current[key];
       if (target && mapRef.current) {
         const pos = centerOf(target);
         setAlvinPos({ left: pos.x, top: pos.y });
@@ -148,8 +153,8 @@ export default function Home() {
         setAlvinVisible(true);
         setTimeout(() => setAlvinVisible(false), 2800);
       }
-      idx = (idx + 1) % stationIds.length;
-      setTimeout(rounds, 4400);
+      idx = (idx + 1) % ZONES.length;
+      setTimeout(rounds, 3600);
     }
 
     const start = setTimeout(rounds, 600);
@@ -157,11 +162,21 @@ export default function Home() {
       cancelled = true;
       clearTimeout(start);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const pendingReview = data.counts["pending-review"] ?? 0;
   const approvedTotal = data.counts["approved"] ?? 0;
+
+  const queueCount = useMemo(
+    () => ({
+      studio: data.queues.studio.length,
+      editor: data.queues.editor.length,
+      packager: data.queues.packager.length,
+      designer: data.socialQueueCounts.designer,
+      copywriter: data.socialQueueCounts.copywriter,
+    }),
+    [data]
+  );
 
   const tickerText =
     data.reports.length > 0
@@ -169,12 +184,12 @@ export default function Home() {
       : "SYSTEM :: waiting on the first cycle to run…";
 
   return (
-    <div className={styles.scene}>
+    <div className={`${styles.scene} ${isDayShift === false ? styles.night : styles.day}`}>
       <NavTabs />
 
       <div className={styles.hudTop}>
         <div className={styles.hudLeft}>
-          <span className={styles.hudTitle}>NIGHT SHIFT</span>
+          <span className={styles.hudTitle}>{isDayShift === false ? "NIGHT SHIFT" : "DAY SHIFT"}</span>
           <span className={styles.hudStat}>
             NEXT CYCLE <b>{countdown}</b>
           </span>
@@ -190,158 +205,58 @@ export default function Home() {
       </div>
 
       <h1 className={styles.pagehead}>THE TRAP</h1>
-      <p className={styles.subhead}>five-person crew running an Etsy shop while you sleep</p>
-
-      {data.latestMeetingNotes && (
-        <p className={styles.subhead} style={{ maxWidth: 700, margin: "0 auto 12px" }}>
-          <em>Latest sync — {data.latestMeetingNotes.batch_id}:</em> {data.latestMeetingNotes.notes}
-        </p>
-      )}
 
       <div className={styles.map} ref={mapRef}>
-        <div
-          className={`${styles.room} ${styles.boss} ${styles.bossSlot}`}
-          ref={roomRefs.boss}
-        >
-          <Link href="/review" className={styles.roomFloor} aria-label="Go to review queue" />
-          <div className={styles.bossDesk} />
-          <div className={styles.bossChair} />
-          <div className={styles.cash} style={{ bottom: "48px", left: "42%" }} />
-          <div className={styles.cash} style={{ bottom: "52px", left: "48%" }} />
-          <div className={styles.frame} />
-          <div
-            className={styles.bot}
-            style={{ color: "var(--gold)", background: "var(--gold)", ...botPos.boss }}
-          >
-            <div className={styles.botTag}>BIG AL</div>
-          </div>
-          <div className={styles.roomLabel}>
-            Big Al <small>BOSS — TAP FOR REVIEW QUEUE</small>
-          </div>
-          <div className={styles.roomDesc}>
-            Approves or rejects everything that reaches the review queue
-          </div>
-        </div>
+        {ZONES.map((zone) => {
+          const sprite = SPRITES[zone.key];
+          const count =
+            zone.key === "studio"
+              ? queueCount.studio
+              : zone.key === "editor"
+              ? queueCount.editor
+              : zone.key === "packager"
+              ? queueCount.packager
+              : zone.key === "designer"
+              ? queueCount.designer
+              : zone.key === "copywriter"
+              ? queueCount.copywriter
+              : null;
 
-        <div className={styles.hallwayH} />
+          return (
+            <Link
+              key={zone.key}
+              href={zone.href}
+              ref={(el) => {
+                zoneRefs.current[zone.key] = el;
+              }}
+              className={`${styles.zoneCard} ${zone.big ? styles.zoneBig : ""}`}
+              style={{ ["--zone-color" as string]: zone.color } as React.CSSProperties}
+            >
+              <div
+                className={styles.zoneLabel}
+                style={{ background: zone.color, color: zone.textColor }}
+              >
+                {zone.name}
+                <small>{zone.role}</small>
+              </div>
+              {count !== null && <span className={styles.zoneCount}>{count}</span>}
+              <div
+                className={styles.spriteSlot}
+                style={{ left: botPos[zone.key]?.left, top: botPos[zone.key]?.top }}
+              >
+                <PixelSprite
+                  palette={sprite.palette}
+                  rowOverrides={sprite.rowOverrides}
+                  big={zone.big}
+                  flipped={flipped[zone.key]}
+                />
+              </div>
+            </Link>
+          );
+        })}
 
-        <div
-          className={`${styles.room} ${styles.research} ${styles.researchSlot}`}
-          ref={roomRefs.research}
-        >
-          <Link href="/crew/research" className={styles.roomFloor} aria-label="Go to Research Lab" />
-          <div className={styles.desk} />
-          <div className={`${styles.monitor} ${styles.m1}`}>
-            <div className={styles.monitorLine} />
-          </div>
-          <div className={`${styles.monitor} ${styles.m2}`}>
-            <div className={styles.monitorLine} />
-          </div>
-          <div className={`${styles.monitor} ${styles.m3}`}>
-            <div className={styles.monitorLine} />
-          </div>
-          <div
-            className={styles.bot}
-            style={{ color: "var(--hud-green)", background: "var(--hud-green)", ...botPos.research }}
-          >
-            <div className={styles.botTag}>ALIANTTE</div>
-          </div>
-          <div className={styles.roomLabel}>
-            Aliantte <small>RESEARCH LAB</small>
-          </div>
-          <div className={styles.roomDesc}>Etsy digital-product ideas, every 4h</div>
-        </div>
-
-        <div className={`${styles.hallwayV} ${styles.hallwayV1}`} />
-
-        <div
-          className={`${styles.room} ${styles.studio} ${styles.studioSlot}`}
-          ref={roomRefs.studio}
-        >
-          <Link href="/crew/studio" className={styles.roomFloor} aria-label="Go to Studio" />
-          <div className={styles.easel} />
-          <div className={styles.canvas}>
-            <div
-              className={styles.paintSplat}
-              style={{ width: 14, height: 14, background: "var(--neon-pink)", top: 6, left: 8 }}
-            />
-            <div
-              className={styles.paintSplat}
-              style={{ width: 9, height: 9, background: "var(--gold)", top: 14, left: 24 }}
-            />
-          </div>
-          <div className={styles.drip} />
-          <TodoPanel label="TO RENDER" items={data.queues.studio} />
-          <div
-            className={styles.bot}
-            style={{ color: "var(--neon-purple)", background: "var(--neon-purple)", ...botPos.studio }}
-          >
-            <div className={styles.botTag}>PIN LADEN</div>
-          </div>
-          <div className={styles.roomLabel}>
-            Pin Laden <small>STUDIO</small>
-          </div>
-          <div className={styles.roomDesc}>Renders designs for whatever survives the sync</div>
-        </div>
-
-        <div className={styles.hallwayH} />
-
-        <div
-          className={`${styles.room} ${styles.editor} ${styles.editorSlot}`}
-          ref={roomRefs.editor}
-        >
-          <Link href="/crew/editor" className={styles.roomFloor} aria-label="Go to Editor" />
-          <div className={styles.headphones} />
-          <div className={styles.timeline}>
-            <div className={styles.timelineClip} style={{ left: 6 }} />
-            <div className={styles.timelineClip} style={{ left: 34 }} />
-            <div className={styles.timelineClip} style={{ left: 70 }} />
-          </div>
-          <div className={styles.editDesk} />
-          <TodoPanel label="TO WRITE" items={data.queues.editor} />
-          <div
-            className={styles.bot}
-            style={{ color: "var(--neon-cyan)", background: "var(--neon-cyan)", ...botPos.editor }}
-          >
-            <div className={styles.botTag}>ALLY AL</div>
-          </div>
-          <div className={styles.roomLabel}>
-            Ally Al <small>EDITOR</small>
-          </div>
-          <div className={styles.roomDesc}>Writes listing copy, QA before it ships</div>
-        </div>
-
-        <div className={`${styles.hallwayV} ${styles.hallwayV2}`} />
-
-        <div
-          className={`${styles.room} ${styles.packager} ${styles.packagerSlot}`}
-          ref={roomRefs.packager}
-        >
-          <Link href="/crew/packager" className={styles.roomFloor} aria-label="Go to Packaging Bay" />
-          <div className={styles.crate} style={{ width: 34, height: 26, bottom: 40, left: 24 }}>
-            <div className={styles.tapeLine} />
-          </div>
-          <div className={styles.crate} style={{ width: 26, height: 20, bottom: 42, left: 62 }}>
-            <div className={styles.tapeLine} />
-          </div>
-          <div className={styles.outTray} />
-          <TodoPanel label="TO PACKAGE" items={data.queues.packager} />
-          <div
-            className={styles.bot}
-            style={{ color: "var(--neon-pink)", background: "var(--neon-pink)", ...botPos.packager }}
-          >
-            <div className={styles.botTag}>BOXLEY</div>
-          </div>
-          <div className={styles.roomLabel}>
-            Boxley <small>PACKAGING BAY</small>
-          </div>
-          <div className={styles.roomDesc}>Bundles design + copy, sends it up to Big Al</div>
-        </div>
-
-        <div
-          className={styles.alvin}
-          style={{ left: alvinPos.left, top: alvinPos.top }}
-        >
+        <div className={styles.alvin} style={{ left: alvinPos.left, top: alvinPos.top }}>
+          <PixelSprite palette={SPRITES.alvin.palette} rowOverrides={SPRITES.alvin.rowOverrides} />
           <div className={styles.alvinTag}>ALVIN</div>
           <div className={`${styles.alvinBubble} ${alvinVisible ? styles.alvinBubbleShow : ""}`}>
             {alvinBubble}

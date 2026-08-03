@@ -4,7 +4,8 @@ export type IdeaCategory =
   | "phone_wallpaper"
   | "digital_planner"
   | "sticker_sheet"
-  | "coloring_page";
+  | "coloring_page"
+  | "game_asset_pack";
 
 export type IdeaStatus =
   | "new"
@@ -24,6 +25,8 @@ export type Idea = {
   trend_rationale: string;
   status: IdeaStatus;
   reject_reason: string | null;
+  suggested_price: number | null;
+  price_range: string | null;
   created_at: string;
 };
 
@@ -45,7 +48,7 @@ export type ListingCopy = {
 
 export type Report = {
   id: number;
-  employee: "Aliantte" | "Pin Laden" | "Ally Al" | "Packager" | "Alvin" | "Scout" | "Designer" | "Copywriter";
+  employee: "Aliantte" | "Pin Laden" | "Ally Al" | "Packager" | "Alvin" | "Scout" | "Designer" | "Copywriter" | "Boardroom";
   summary: string;
   created_at: string;
 };
@@ -108,4 +111,12 @@ export const CATEGORY_LABEL: Record<IdeaCategory, string> = {
   digital_planner: "Digital planner",
   sticker_sheet: "Sticker sheet",
   coloring_page: "Coloring page",
+  game_asset_pack: "Game asset pack",
+};
+
+export type TeamMeeting = {
+  id: number;
+  discussion: string;
+  suggestions: string;
+  created_at: string;
 };

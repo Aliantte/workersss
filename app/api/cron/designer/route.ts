@@ -11,15 +11,19 @@ export const maxDuration = 280;
 
 // Each post renders TWO images (Instagram + TikTok), so this stays low —
 // learned the hard way on the Etsy shop that too much per-run image work
-// risks a hard 280s timeout that kills the whole run mid-work.
-const POST_CAP = 3;
+// risks a hard 280s timeout that kills the whole run mid-work. Cap dropped
+// again (3 -> 2) to make room for the resolution bump below.
+const POST_CAP = 2;
+
+const QUALITY_SUFFIX =
+  "Professional, polished illustration quality — avoid the generic over-smoothed, mushy-detail look common in AI art, avoid warped or nonsensical small details, coherent clean composition.";
 
 function buildImagePrompt(post: Post, platform: "instagram" | "tiktok"): string {
   const aspectNote =
     platform === "tiktok"
       ? "vertical 9:16 composition, key visual centered for mobile full-screen viewing"
       : "square/portrait composition suitable for an Instagram feed post";
-  return `Social media graphic. Concept: ${post.hook}. Style: ${post.style}. ${aspectNote}. High resolution, clean composition, leaves room for text overlay, no watermark, no existing logos or trademarks.`;
+  return `Social media graphic. Concept: ${post.hook}. Style: ${post.style}. ${aspectNote}. High resolution, clean composition, leaves room for text overlay, no watermark, no existing logos or trademarks. ${QUALITY_SUFFIX}`;
 }
 
 export async function GET(req: NextRequest) {
@@ -39,8 +43,8 @@ export async function GET(req: NextRequest) {
   for (const post of posts) {
     try {
       const platforms: { platform: "instagram" | "tiktok"; width: string; height: string }[] = [
-        { platform: "instagram", width: "1024", height: "1024" },
-        { platform: "tiktok", width: "1024", height: "1820" },
+        { platform: "instagram", width: "1280", height: "1280" },
+        { platform: "tiktok", width: "1280", height: "2276" },
       ];
 
       for (const { platform, width, height } of platforms) {
