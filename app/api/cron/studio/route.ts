@@ -48,7 +48,7 @@ function buildImagePrompt(idea: Idea): string {
   }
 
   if (idea.category === "mug_tumbler_wrap") {
-    return `${label}: ${idea.concept}. Designed as a seamless wrap for a 20oz tumbler — full-bleed, edge-to-edge composition with NO border and NO empty margin, since this stretches around a cylinder; the left and right edges should feel like they could connect smoothly, not an isolated centered graphic on blank space. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, vibrant professional color, no text or watermark. ${QUALITY_SUFFIX}`;
+    return `${label}: ${idea.concept}. Pure full-bleed illustrated scene or pattern — fills the ENTIRE frame completely edge-to-edge, zero border, zero white space, zero margin on any side. This is flat artwork only, NOT a product photo or mockup — do not depict a cup, mug, tumbler, or any product; just the scene/pattern itself. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, vibrant professional color, no text or watermark. ${QUALITY_SUFFIX}`;
   }
 
   return `${label}: ${idea.concept}. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, sharp clean linework, vibrant professional color, commercial print-ready quality, no text or watermark. ${QUALITY_SUFFIX}`;
