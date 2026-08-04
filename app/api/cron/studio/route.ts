@@ -48,7 +48,7 @@ function buildImagePrompt(idea: Idea): string {
   }
 
   if (idea.category === "mug_tumbler_wrap") {
-    return `${label}: ${idea.concept}. Pure full-bleed illustrated scene or pattern — fills the ENTIRE frame completely edge-to-edge, zero border, zero white space, zero margin on any side. This is flat artwork only, NOT a product photo or mockup — do not depict a cup, mug, tumbler, or any product; just the scene/pattern itself. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, vibrant professional color, no text or watermark. ${QUALITY_SUFFIX}`;
+    return `${label}: ${idea.concept}. Compose this as if it's a cropped detail from a much larger continuous scene or seamless repeating pattern — NOT a self-contained framed picture with one centered subject and clear composed edges. The image should feel like it keeps going beyond all four sides, like a snapshot cut from something bigger, not a poster or portrait with a beginning and end. Fills the ENTIRE frame edge-to-edge, zero border, zero white space, zero margin. Flat artwork only — do not depict a cup, mug, tumbler, or any product. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, vibrant professional color, no text or watermark. ${QUALITY_SUFFIX}`;
   }
 
   return `${label}: ${idea.concept}. Anime/manga art style or Western cartoon style or nature and botanical illustration — whichever the concept calls for. Ultra high resolution, extremely detailed, sharp clean linework, vibrant professional color, commercial print-ready quality, no text or watermark. ${QUALITY_SUFFIX}`;
